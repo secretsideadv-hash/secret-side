@@ -49,6 +49,65 @@ export function FlagIcon(props: IconProps) {
   );
 }
 
+export function ArrowLeftIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M19 12H5M11 6l-6 6 6 6" />
+    </Icon>
+  );
+}
+
+export function ArrowRightIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </Icon>
+  );
+}
+
+export function ClockIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </Icon>
+  );
+}
+
+export function PinIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z" />
+      <circle cx="12" cy="9.5" r="2.5" />
+    </Icon>
+  );
+}
+
+export function PuzzleIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M9 4h3.5a2 2 0 1 1 3.5 1.5V8h3v3.5a2 2 0 1 0 0 3.5V19h-4a2 2 0 1 0-3.5 0H5v-4.5a2 2 0 1 0 0-3.5V8h4V4Z" />
+    </Icon>
+  );
+}
+
+export function WalkIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="13" cy="4.5" r="1.8" />
+      <path d="m10 21 2-6-2.5-2.5 1-4.5L14 10l3 1.5M9.5 8.5 7 11M12 15l3 6" />
+    </Icon>
+  );
+}
+
+export function MoonIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" />
+    </Icon>
+  );
+}
+
 export function StampIcon(props: IconProps) {
   return (
     <Icon {...props}>

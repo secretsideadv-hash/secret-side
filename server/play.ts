@@ -1,6 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
+import { connection } from "next/server";
 import {
   applyInactivity,
   checkIn,
@@ -9,7 +10,9 @@ import {
   skipStop,
   startSession,
   submitAnswer,
+  toContinueCard,
   toVisibleState,
+  type VisibleContinueCard,
   type AnswerInput,
   type AnswerOutcome,
   type ExperienceContent,
@@ -19,7 +22,7 @@ import {
   type VisibleState,
 } from "@/features/engine";
 import { contentRepository } from "./content-repository";
-import { loadSession, saveSession } from "./session-store";
+import { loadCurrentSession, loadSession, saveSession } from "./session-store";
 
 /**
  * Server use-cases for the play flow: load → engine → save → project.
@@ -33,12 +36,23 @@ async function contentFor(session: Session): Promise<ExperienceContent> {
   return content;
 }
 
-/** Starts a new session for a published experience and returns its id. */
-export async function startPlay(slug: string): Promise<Id> {
+/**
+ * "Unlock adventure": resumes this browser's unfinished session for the same
+ * experience, otherwise starts a new one. Returns the session id.
+ * (M1 holds one session per browser, so starting a different adventure replaces it.)
+ */
+export async function startOrResumePlay(slug: string): Promise<Id> {
   const summary = await contentRepository.getSummaryBySlug(slug);
   if (!summary) throw new Error("Unknown experience");
   const content = await contentRepository.getContent(summary.experience.id);
   if (!content) throw new Error("Experience content not found");
+
+  const existing = await loadCurrentSession();
+  if (existing && existing.experienceId === content.experience.id && existing.status !== "completed") {
+    return existing.id;
+  }
+
+  // MOCK: free in M1. From M6 this requires an entitlement created by the Stripe webhook.
   const session = startSession({ id: randomUUID(), content, now: new Date() });
   await saveSession(session);
   return session.id;
@@ -46,10 +60,22 @@ export async function startPlay(slug: string): Promise<Id> {
 
 /** For Server Components. Null if this browser's cookie doesn't hold that session. */
 export async function getPlayState(sessionId: Id): Promise<VisibleState | null> {
+  await connection(); // per-request: reads the clock
   const stored = await loadSession(sessionId);
   if (!stored) return null;
   const now = new Date();
   return toVisibleState(applyInactivity(stored, now), await contentFor(stored), now);
+}
+
+/** Discover's "Continue" card: this browser's unfinished session, if any. */
+export async function getContinueCard(): Promise<VisibleContinueCard | null> {
+  await connection(); // per-request: reads the clock
+  const stored = await loadCurrentSession();
+  if (!stored) return null;
+  const content = await contentRepository.getContent(stored.experienceId);
+  if (!content) return null;
+  const now = new Date();
+  return toContinueCard(toVisibleState(applyInactivity(stored, now), content, now));
 }
 
 type Mutation<R> = (

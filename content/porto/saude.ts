@@ -54,16 +54,16 @@ const OPTION = {
   clerigosStars: "b8712297-db8a-46ac-bbf5-4771da44808d",
 } as const;
 
-// MOCK: price, duration, distance and start window are placeholders.
+// MOCK: price (per group: one purchase covers the whole session), duration, distance and start window are placeholders.
 const experience: Experience = {
   id: EXPERIENCE_ID,
   slug: "saude",
   citySlug: "porto",
   kind: "pub_crawl",
   title: "Saúde!",
-  tagline: "Five bars, five lines of a lost toast. Find them all before last orders.",
+  tagline: "Five bars, five lines of a lost toast. Can your group find them all?",
   description:
-    "In 1891 a cellar master hid her last toast across Porto, one line at a time. Follow the trail from the river to the Clérigos tower, solve a clue at every stop and put the toast back together. Every stop serves soft drinks too, so it works whether or not you drink.",
+    "In 1891 a cellar master hid her last toast across Porto, one line at a time. Follow her trail through the old town, solve a clue at every stop and put the toast back together. Every stop serves soft drinks too, so it works whether or not you drink.",
   isFlagship: true,
   durationMinutes: 150,
   distanceMeters: 1900,
@@ -72,7 +72,7 @@ const experience: Experience = {
     "One steep climb from the river to the cathedral, on cobbles. The route stays on lit, busy streets. Comfortable shoes recommended.",
   recommendedStartFrom: "19:00",
   recommendedStartTo: "21:00",
-  priceCents: 1500,
+  priceCents: 799,
   currency: "EUR",
   status: "published",
 };
@@ -150,7 +150,7 @@ const stops: Stop[] = [
       name: "[Stop 4 backup venue]",
       lat: 41.1478,
       lng: -8.6114,
-      teaser: "Your fourth stop is closed tonight, so head to its neighbour on the same avenue instead.",
+      teaser: "Your fourth stop is closed right now, so head to its neighbour on the same avenue instead.",
     },
   },
   {
@@ -158,10 +158,10 @@ const stops: Stop[] = [
     experienceId: EXPERIENCE_ID,
     position: 5,
     title: "The last line",
-    teaser: "Finish below the Clérigos tower, on the street where Porto's night really starts.",
+    teaser: "Finish below the Clérigos tower, on one of the liveliest streets in the old town.",
     // MOCK: invented story (the tower as her compass, the unwritten line).
     story:
-      "You can see the Clérigos tower from almost anywhere in the old town. Inês used it as her compass: if she could see the tower, she knew her way home. The last line was never written down. She spoke it to the last person she toasted in Porto, and it has been passed from table to table ever since. Some say it changes a little every time. Tonight it's yours: “To the way home, and to the next time.” Saúde!",
+      "You can see the Clérigos tower from almost anywhere in the old town. Inês used it as her compass: if she could see the tower, she knew her way home. The last line was never written down. She spoke it to the last person she toasted in Porto, and it has been passed from table to table ever since. Some say it changes a little every time. Now it's yours: “To the way home, and to the next time.” Saúde!",
     venueName: "[Stop 5 venue]",
     lat: 41.1468,
     lng: -8.6142,

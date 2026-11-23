@@ -13,11 +13,16 @@ import { decodeSession, encodeSession } from "./session-codec";
 const COOKIE_NAME = "ss_session";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
-/** Readable from Server Components, Server Functions and Route Handlers. */
-export async function loadSession(sessionId: string): Promise<Session | null> {
+/** The session held by this browser, if any. */
+export async function loadCurrentSession(): Promise<Session | null> {
   const token = (await cookies()).get(COOKIE_NAME)?.value;
   if (!token) return null;
-  const session = decodeSession(token, serverEnv().SESSION_SECRET);
+  return decodeSession(token, serverEnv().SESSION_SECRET);
+}
+
+/** Readable from Server Components, Server Functions and Route Handlers. */
+export async function loadSession(sessionId: string): Promise<Session | null> {
+  const session = await loadCurrentSession();
   return session?.id === sessionId ? session : null;
 }
 

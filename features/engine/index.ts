@@ -13,4 +13,4 @@ export {
   unlockNextStop,
   applyInactivity,
 } from "./session";
-export { toVisibleState } from "./visible-state";
+export { toContinueCard, toVisibleState, toVisibleSummary } from "./visible-state";

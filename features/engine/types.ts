@@ -225,6 +225,37 @@ export interface VisibleState {
   current: VisibleCurrentStop | null; // null once the session is completed
 }
 
+/** Catalog card / details page. Public facts about an experience, no stops. */
+export interface VisibleExperienceSummary {
+  slug: string;
+  title: string;
+  tagline: string;
+  description: string;
+  kind: ExperienceKind;
+  isFlagship: boolean;
+  durationMinutes: number;
+  distanceMeters: number;
+  walkingDifficulty: WalkingDifficulty;
+  nightNotes: string | null;
+  recommendedStartFrom: LocalTime | null;
+  recommendedStartTo: LocalTime | null;
+  priceCents: number;
+  currency: "EUR";
+  stopCount: number;
+  puzzleCount: number;
+}
+
+/** "Continue" card on Discover for an unfinished session in this browser. */
+export interface VisibleContinueCard {
+  sessionId: Id;
+  experienceTitle: string;
+  experienceSlug: string;
+  completedCount: number;
+  totalStops: number;
+  currentPosition: number;
+  currentTitle: string;
+}
+
 // ---------------------------------------------------------------------------
 // Action inputs / results
 // ---------------------------------------------------------------------------

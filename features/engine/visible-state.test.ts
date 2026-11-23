@@ -17,7 +17,7 @@ import {
 } from "./__fixtures__/sentinel-content";
 import { checkIn, revealAnswer, revealHint, skipStop, startSession, submitAnswer } from "./session";
 import type { ExperienceContent, Session, VisibleState } from "./types";
-import { toVisibleState } from "./visible-state";
+import { toContinueCard, toVisibleState, toVisibleSummary } from "./visible-state";
 
 const content = buildSentinelContent();
 const NOW = new Date("2026-11-23T20:00:00.000Z");
@@ -233,5 +233,37 @@ describe("never expose locked stops or answers", () => {
       Array.from({ length: 30 }, (_, n) => optionsFor(`session-${n}`).indexOf(correctOptionId(1))),
     );
     expect(correctSlots.size).toBeGreaterThan(1);
+  });
+});
+
+describe("catalog and Continue-card projections", () => {
+  it("the summary has counts but no stop, challenge, hint or answer content", () => {
+    const summary = toVisibleSummary(content);
+    expect(summary).toMatchObject({ slug: "sentinel", stopCount: 5, puzzleCount: 5 });
+    const json = JSON.stringify(summary);
+    expect(json).not.toMatch(/_ZQ|zq|stopid|optid|chalid/);
+    expect(collectKeys(summary).has("id")).toBe(false);
+  });
+
+  it("the Continue card shows progress and the current stop only", () => {
+    let s = startSession({ id: "s", content, now: NOW });
+    s = skipStop(s, content, { stopId: stopId(1), now: NOW });
+    const card = toContinueCard(toVisibleState(s, content, NOW));
+    expect(card).toEqual({
+      sessionId: "s",
+      experienceTitle: "Sentinel",
+      experienceSlug: "sentinel",
+      completedCount: 1,
+      totalStops: 5,
+      currentPosition: 2,
+      currentTitle: "TITLE_2_ZQ",
+    });
+    expect(JSON.stringify(card)).not.toMatch(/TITLE_[345]|STORY|HINT|EXPLAIN|Answerword/);
+  });
+
+  it("there is no Continue card once the session is completed", () => {
+    let s = startSession({ id: "s", content, now: NOW });
+    for (let i = 1; i <= 5; i++) s = skipStop(s, content, { stopId: stopId(i), now: NOW });
+    expect(toContinueCard(toVisibleState(s, content, NOW))).toBeNull();
   });
 });

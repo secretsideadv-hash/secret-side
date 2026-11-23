@@ -24,12 +24,51 @@ import type {
   Stop,
   VisibleChallenge,
   VisibleCompletedStop,
+  VisibleContinueCard,
   VisibleCurrentStop,
+  VisibleExperienceSummary,
   VisibleHint,
   VisibleState,
 } from "./types";
 
 const HINT_LEVELS: readonly HintLevel[] = [1, 2];
+
+/** Public catalog facts only: counts, never the stops themselves. */
+export function toVisibleSummary(content: ExperienceContent): VisibleExperienceSummary {
+  const e = content.experience;
+  return {
+    slug: e.slug,
+    title: e.title,
+    tagline: e.tagline,
+    description: e.description,
+    kind: e.kind,
+    isFlagship: e.isFlagship,
+    durationMinutes: e.durationMinutes,
+    distanceMeters: e.distanceMeters,
+    walkingDifficulty: e.walkingDifficulty,
+    nightNotes: e.nightNotes,
+    recommendedStartFrom: e.recommendedStartFrom,
+    recommendedStartTo: e.recommendedStartTo,
+    priceCents: e.priceCents,
+    currency: e.currency,
+    stopCount: content.stops.length,
+    puzzleCount: content.challenges.length,
+  };
+}
+
+/** Built from VisibleState, so it can only ever contain what the play screen may show. */
+export function toContinueCard(state: VisibleState): VisibleContinueCard | null {
+  if (state.session.status === "completed" || !state.current) return null;
+  return {
+    sessionId: state.session.id,
+    experienceTitle: state.experience.title,
+    experienceSlug: state.experience.slug,
+    completedCount: state.completedStops.length,
+    totalStops: state.session.totalStops,
+    currentPosition: state.current.position,
+    currentTitle: state.current.title,
+  };
+}
 
 function venueOf(stop: Stop, progress: SessionStop) {
   if (progress.usedBackupVenue && stop.backupVenue) {

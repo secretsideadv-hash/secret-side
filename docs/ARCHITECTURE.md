@@ -22,6 +22,13 @@ Rules of the game live in `GAME_RULES.md`; this file is about where code goes.
 5. **ESLint** forbids `components/**` from importing content, server modules or engine logic.
 6. **Tests:** `features/engine/visible-state.test.ts` plays through a fixture made of unique sentinel strings and checks the serialised state after every step; `content/porto/saude.test.ts` does the same against real content.
 
+## Rendering and caching (Next 16, `cacheComponents`)
+
+- **Catalog** (`server/catalog.ts`): `"use cache"` functions returning `VisibleExperienceSummary` (counts, never stops). Discover, Coming soon and the Details page for each published slug are prerendered from it.
+- **Per-request parts** read the session cookie or the clock and sit inside `<Suspense>`: Discover's Continue card (`VisibleContinueCard`, built from `VisibleState`) and the Play screen. They call `connection()` before reading the clock.
+- **URL data** (`params`) is read inside `<Suspense>` so the instant-navigation shell (hero, back button) is shared across slugs; links to details use `prefetch` to resolve it ahead of the tap.
+- **Unlock adventure** is a Server Action (`app/(visitor)/adventures/[slug]/actions.ts`) that validates the slug with Zod, resumes this browser's unfinished session for that adventure or starts a new one, and redirects to `/play/[sessionId]`.
+
 ## Session storage
 
 - **M1 (MOCK):** the `Session` object (progress only, no content) is stored in one cookie `ss_session`, encrypted and authenticated with AES-256-GCM (`server/crypto.ts`, `node:crypto`, key from `SESSION_SECRET` via HKDF). `httpOnly`, `sameSite=lax`, `secure` in production, 30 days. Any change to the cookie fails authentication and the session is treated as missing. Limits: one active session per browser, no groups, and restoring an older cookie rolls back progress (only affects the player's own score).
