@@ -1,57 +1,54 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { buttonClass, Eyebrow, ProgressSegments } from "@/components/ui/primitives";
+import { NotOnThisPhone } from "@/components/play/NotOnThisPhone";
+import { PlayScreen } from "@/components/play/PlayScreen";
+import type { PlayActions } from "@/lib/play-types";
 import { getPlayState } from "@/server/play";
+import {
+  checkInAction,
+  revealAnswerAction,
+  revealHintAction,
+  skipStopAction,
+  submitAnswerAction,
+} from "./actions";
 
 export const metadata: Metadata = { title: "Playing" };
 
-// MOCK: placeholder so "Unlock adventure" lands somewhere real. The Play screen is M1 step 5.
-async function SessionPreview({ params }: { params: Promise<{ sessionId: string }> }) {
-  const state = await getPlayState((await params).sessionId);
-  if (!state) {
-    return (
-      <div className="flex flex-col gap-4">
-        <h1 className="text-3xl font-bold">This adventure isn&apos;t on this phone</h1>
-        <p className="text-muted">Start it from the adventure page to play here.</p>
-        <Link href="/" className={buttonClass.secondary}>
-          Back to Discover
-        </Link>
-      </div>
-    );
-  }
-  const current = state.current;
+const actions: PlayActions = {
+  checkIn: checkInAction,
+  revealHint: revealHintAction,
+  submitAnswer: submitAnswerAction,
+  revealAnswer: revealAnswerAction,
+  skip: skipStopAction,
+};
+
+async function PlayLoader({ params }: { params: Promise<{ sessionId: string }> }) {
+  const { sessionId } = await params;
+  const state = await getPlayState(sessionId);
+  if (!state) return <NotOnThisPhone />;
+  if (state.session.status === "completed" || !state.current) redirect(`/play/${sessionId}/complete`);
+
+  const c = state.current;
+  // Remount when the server state moves on (e.g. after router.refresh()).
+  const key = `${c.stopId}:${c.status}:${c.hints.filter((h) => h.text).length}`;
+  return <PlayScreen key={key} initialState={state} actions={actions} />;
+}
+
+function PlaySkeleton() {
   return (
-    <div className="flex flex-col gap-5">
-      <Eyebrow>{state.experience.title}</Eyebrow>
-      <ProgressSegments
-        total={state.session.totalStops}
-        completed={state.completedStops.length}
-        label={`${state.completedStops.length} of ${state.session.totalStops} stops done`}
-      />
-      {current && (
-        <div className="rounded-card border border-line bg-surface p-5">
-          <p className="text-sm text-muted">
-            Stop {current.position} of {state.session.totalStops} unlocked
-          </p>
-          <h1 className="mt-1 text-3xl font-bold">{current.title}</h1>
-          <p className="mt-2 text-muted">{current.teaser}</p>
-        </div>
-      )}
-      <p className="text-sm text-muted">The play screen arrives in the next step.</p>
-      <Link href="/" className={buttonClass.secondary}>
-        Back to Discover
-      </Link>
+    <div className="mx-auto flex min-h-dvh max-w-[430px] flex-col gap-4 px-5 pt-6" aria-busy="true" aria-label="Loading your adventure">
+      <div className="h-11 w-full rounded-full bg-surface" />
+      <div className="h-1.5 w-full rounded-full bg-surface" />
+      <div className="h-64 w-full rounded-card bg-surface" />
     </div>
   );
 }
 
 export default function PlayPage({ params }: PageProps<"/play/[sessionId]">) {
   return (
-    <main className="mx-auto min-h-dvh max-w-[430px] px-5 pt-[max(env(safe-area-inset-top),1.5rem)] pb-10">
-      <Suspense fallback={<p className="text-muted">Loading your adventure…</p>}>
-        <SessionPreview params={params} />
-      </Suspense>
-    </main>
+    <Suspense fallback={<PlaySkeleton />}>
+      <PlayLoader params={params} />
+    </Suspense>
   );
 }

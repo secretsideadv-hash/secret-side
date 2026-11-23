@@ -29,6 +29,18 @@ Rules of the game live in `GAME_RULES.md`; this file is about where code goes.
 - **URL data** (`params`) is read inside `<Suspense>` so the instant-navigation shell (hero, back button) is shared across slugs; links to details use `prefetch` to resolve it ahead of the tap.
 - **Unlock adventure** is a Server Action (`app/(visitor)/adventures/[slug]/actions.ts`) that validates the slug with Zod, resumes this browser's unfinished session for that adventure or starts a new one, and redirects to `/play/[sessionId]`.
 
+## Play flow
+
+- `/play/[sessionId]`: Server Component loads `VisibleState` and renders the client `PlayScreen`, passing the Server Actions in as props (`lib/play-types.ts → PlayActions`), so components never import server code.
+- Actions (`app/(visitor)/play/[sessionId]/actions.ts`) validate input with Zod, run the engine via `server/play.ts`, and return the new `VisibleState`. Engine errors (stale double tap, hint not available) come back as error codes; the screen shows a message and refreshes. Completing a stop (correct answer, reveal, skip) **redirects** server-side to `/unlocked`, or `/complete` after the last stop.
+- `/unlocked` is only shown between completing a stop and arriving at the next; otherwise it redirects back to `/play`.
+- Next 16 keeps recently visited pages mounted but hidden (React `<Activity>`) for instant back navigation. E2E text lookups filter to visible elements for that reason.
+
+## Tests
+
+- `npm test` (Vitest): engine rules, answer matching, the no-leak projection, cookie crypto, content integrity.
+- `npm run test:e2e` (Playwright): builds and starts production on port 3100, plays the whole mock adventure at 390 px, checks every HTML/RSC/action response for answers, unrevealed hints and locked stops, and checks the session can't be opened from another browser. The answers it uses are mock content and are marked `MOCK:` in the spec.
+
 ## Session storage
 
 - **M1 (MOCK):** the `Session` object (progress only, no content) is stored in one cookie `ss_session`, encrypted and authenticated with AES-256-GCM (`server/crypto.ts`, `node:crypto`, key from `SESSION_SECRET` via HKDF). `httpOnly`, `sameSite=lax`, `secure` in production, 30 days. Any change to the cookie fails authentication and the session is treated as missing. Limits: one active session per browser, no groups, and restoring an older cookie rolls back progress (only affects the player's own score).
