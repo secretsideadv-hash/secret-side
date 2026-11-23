@@ -5,6 +5,34 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  // Presentation components get DTOs as props. They may import engine *types*
+  // only, never content (answers), server modules or engine logic.
+  {
+    files: ["components/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/features/engine",
+              message: "Components may import only types from @/features/engine/types.",
+            },
+          ],
+          patterns: [
+            {
+              group: ["@/content/*", "@/content/**", "@/server/*", "@/server/**", "@/lib/env"],
+              message: "Components must not import content or server code. Pass VisibleState props.",
+            },
+            {
+              group: ["@/features/engine/*", "!@/features/engine/types"],
+              message: "Components may import only types from @/features/engine/types.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
