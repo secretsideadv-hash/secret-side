@@ -22,6 +22,8 @@ export const metadata: Metadata = {
   description:
     "Self-guided city adventures in Porto. Check in, solve the clue, unlock the next secret.",
   applicationName: "Secret Side",
+  // iOS names home-screen apps from this, not the manifest.
+  appleWebApp: { capable: true, title: "Secret Side", statusBarStyle: "black" },
 };
 
 export const viewport: Viewport = {

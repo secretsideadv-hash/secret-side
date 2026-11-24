@@ -13,6 +13,15 @@ Rules of the game live in `GAME_RULES.md`; this file is about where code goes.
 | `app/` | Routes. Server Components call `server/`; Server Actions are thin wrappers over `server/play.ts`. | `server/`, `components/`, engine types |
 | `components/` | Presentational components. Props are `Visible*` DTOs. | **only** `@/features/engine/types` (ESLint-enforced) |
 
+## Maps
+
+Screens use only `components/maps/MapView`. Its props (`center`, `markers`, `zoom`, `pitch`, `bearing`, `interactive`) are provider-neutral and shaped for Mapbox GL JS. M1 renders a static SVG placeholder (`StaticMap`); M3 swaps the implementation behind `MapView` without touching screens. `markersFromState()` builds markers from `VisibleState`, so a locked stop can never be drawn.
+
+## App chrome
+
+- `app/not-found.tsx`, `app/error.tsx` and `app/global-error.tsx` share `components/ui/StatusScreen`. Production error pages show only Next's digest, never the server message.
+- Icons: `app/icon.svg` is the source (favicon); `app/apple-icon.png` and `public/icons/*.png` are rendered from it. `app/manifest.ts` is the web app manifest (name "Secret Side").
+
 ## Keeping secrets on the server
 
 1. **`server-only`** on every content and server module: importing one from a client component fails the build.

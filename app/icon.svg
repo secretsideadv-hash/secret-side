@@ -1,0 +1,6 @@
+<!-- MOCK: placeholder app mark (amber keyhole on the dark ground) until real branding. Source for public/icons/*.png and app/apple-icon.png. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#0E1320"/>
+  <circle cx="256" cy="206" r="74" fill="#F2A93B"/>
+  <path d="M222 246 L192 374 Q189 390 205 390 L307 390 Q323 390 320 374 L290 246 Z" fill="#F2A93B"/>
+</svg>
