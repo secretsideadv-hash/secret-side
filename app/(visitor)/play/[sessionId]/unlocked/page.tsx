@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { MapView } from "@/components/maps/MapView";
+import { mapLabel, markersFromState } from "@/components/maps/markers";
 import { NotOnThisPhone } from "@/components/play/NotOnThisPhone";
 import { PlayHeader, PlayShell } from "@/components/play/PlayChrome";
 import { CheckCircleIcon, ExternalIcon, PinIcon, UnlockIcon } from "@/components/ui/icons";
@@ -56,6 +58,13 @@ async function UnlockedLoader({ params }: { params: Promise<{ sessionId: string 
           </p>
           <h1 className="text-4xl leading-none font-bold tracking-tight">Destination unlocked</h1>
         </div>
+
+        <MapView
+          center={{ lat: next.lat, lng: next.lng }}
+          markers={markersFromState(state)}
+          pitch={60}
+          label={mapLabel(state)}
+        />
 
         <section className="flex flex-col gap-2 rounded-card border border-line bg-surface p-5">
           <h2 className="font-display text-2xl font-bold">{next.title}</h2>

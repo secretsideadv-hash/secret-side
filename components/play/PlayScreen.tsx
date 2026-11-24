@@ -5,7 +5,9 @@ import { useEffect, useState, useTransition, type FormEvent } from "react";
 import type { AnswerInput, VisibleCurrentStop, VisibleState } from "@/features/engine/types";
 import { googleMapsDirectionsUrl } from "@/lib/maps";
 import type { PlayActionResult, PlayActions, PlayErrorCode } from "@/lib/play-types";
-import { BulbIcon, CheckCircleIcon, ExternalIcon, PinIcon } from "../ui/icons";
+import { MapView } from "../maps/MapView";
+import { mapLabel, markersFromState } from "../maps/markers";
+import { BulbIcon, CheckCircleIcon, PinIcon } from "../ui/icons";
 import { buttonClass } from "../ui/primitives";
 import { PlayHeader, PlayShell } from "./PlayChrome";
 
@@ -122,7 +124,7 @@ export function PlayScreen({ initialState, actions }: { initialState: VisibleSta
             Checked in at {current.venueName}
           </p>
         ) : (
-          <HeadToStop current={current} />
+          <HeadToStop state={state} current={current} />
         )}
 
         {arrived && current.story && current.challenge && (
@@ -205,7 +207,7 @@ export function PlayScreen({ initialState, actions }: { initialState: VisibleSta
   );
 }
 
-function HeadToStop({ current }: { current: VisibleCurrentStop }) {
+function HeadToStop({ state, current }: { state: VisibleState; current: VisibleCurrentStop }) {
   return (
     <section className="flex flex-col gap-4 rounded-card border border-line bg-surface p-5">
       <p className="text-xs font-semibold tracking-[0.12em] text-amber uppercase">
@@ -217,15 +219,13 @@ function HeadToStop({ current }: { current: VisibleCurrentStop }) {
         <PinIcon className="size-4 shrink-0 text-amber" />
         {current.venueName}
       </p>
-      <a
-        href={googleMapsDirectionsUrl(current.lat, current.lng)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={buttonClass.secondary}
-      >
-        Open in Google Maps
-        <ExternalIcon className="size-4" />
-      </a>
+      <MapView
+        center={{ lat: current.lat, lng: current.lng }}
+        markers={markersFromState(state)}
+        pitch={60}
+        label={mapLabel(state)}
+        externalLink={{ href: googleMapsDirectionsUrl(current.lat, current.lng), label: "Open in Google Maps" }}
+      />
       {/* MOCK: manual check-in only until GPS check-in (M3). */}
       <p className="text-xs text-muted">When you get there, tap &ldquo;I&apos;m here&rdquo; to read the story and the clue.</p>
     </section>
