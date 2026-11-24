@@ -33,7 +33,7 @@ unlocks the next location, which stays hidden until earned.
 - Content is data, never hardcoded in components. Until Supabase is connected, content lives in typed files under `content/<city>/` that match the database shape.
 - **Server is the source of truth.** Answer checking, progression, unlocks, purchases and group membership happen in server code (server actions / route handlers / Postgres functions).
 - **Never send the client:** correct answers, unrevealed hints, future (locked) stops, or the full route of a paid adventure. The client receives only completed stops, the current stop and, after unlocking, the next one.
-- Answers and hints live in a table/module that is server-only (`import 'server-only'`, or a Postgres table with no public RLS select).
+- Answers and hints live in a table/module that is server-only (`import 'server-only'`, or a Postgres table with RLS on, no policy **and no grant** for `anon`/`authenticated`).
 - Never trust client GPS or payment status. GPS is a convenience check, not security (see GAME_RULES).
 - RLS on every Supabase table from the first migration. All schema changes go through migrations in `supabase/migrations`.
 - Keep business logic out of presentation components. No new dependencies without a one-line justification.

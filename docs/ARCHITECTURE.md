@@ -53,23 +53,29 @@ Screens use only `components/maps/MapView`. Its props (`center`, `markers`, `zoo
 ## Session storage
 
 - **M1 (MOCK):** the `Session` object (progress only, no content) is stored in one cookie `ss_session`, encrypted and authenticated with AES-256-GCM (`server/crypto.ts`, `node:crypto`, key from `SESSION_SECRET` via HKDF). `httpOnly`, `sameSite=lax`, `secure` in production, 30 days. Any change to the cookie fails authentication and the session is treated as missing. Limits: one active session per browser, no groups, and restoring an older cookie rolls back progress (only affects the player's own score).
-- **M2:** `sessions` and `session_stops` tables in Supabase, keyed by anonymous auth uid. `server/session-store.ts` is the only file that changes; engine and projection stay the same.
+- **M2 (from step 4):** `sessions` and `session_stops` in Supabase, owned by the anonymous auth user (see Database). `server/session-store.ts` changes; engine and projection stay the same.
 
-## Data model → tables (M2)
+## Database (Supabase, M2)
 
-camelCase in TypeScript, snake_case in Postgres; `server/content-repository.ts` maps between them.
+Two projects: **secret-side** (live, Vercel Production only) and **secret-side-dev** (local dev, all tests, Vercel Preview). Region eu-central-1; Vercel functions run in `fra1` (`vercel.json`).
 
-| Type | Table | Notes |
-|---|---|---|
-| `Experience` | `experiences` | public select |
-| `Stop` | `stops` | `backupVenue` → nullable `backup_*` columns; no public select (read via server only) |
-| `Challenge` | `challenges` + `challenge_options` | 1:1 with stop |
-| `AnswerKey` | `challenge_answers` | **no RLS select policy**, server role only |
-| `Hint` | `hints` | server only; revealed text copied into the response |
-| `Session` | `sessions` | |
-| `SessionStop` | `session_stops` | PK `(session_id, stop_id)`; `revealedHintLevels` → `smallint[]` |
+- **Schema** changes only through `supabase/migrations/*.sql`, applied with `npm run db:push:dev`, then `npm run db:push:live`. `scripts/db.mjs` wraps the Supabase CLI and reads credentials from gitignored `.env.local` / `.env.live.local`, so it never depends on the CLI's global login. `npm run db:types` regenerates `lib/supabase/database.types.ts` from dev.
+- **Clients:** `server/supabase/admin.ts` (secret key, bypasses RLS, server-only; every session query must be scoped by the verified user id), `server/supabase/auth.ts` (publishable key + the request's auth cookies), `lib/supabase/browser.ts` (publishable key; M4 realtime).
+- **Privileges** (first migration): default privileges for objects created by `postgres` grant nothing to `anon`/`authenticated` in `public`, and functions get no EXECUTE for PUBLIC. Every table has RLS. Every function has `set search_path = ''` and is `security invoker` unless a comment justifies otherwise; internal helpers live in the unexposed `private` schema.
 
-IDs are fixed UUIDs in the content files so the M2 import keeps them.
+| Type | Table | Guests (publishable key) | Notes |
+|---|---|---|---|
+| `Experience` | `experiences` | select where `published` | one flagship per city |
+| `Stop` | `stops` | nothing | `backupVenue` → `backup_*` columns (all or none); `(experience_id, position)` unique, deferrable |
+| `Challenge` | `challenges` + `challenge_options` | nothing | 1:1 with stop |
+| `AnswerKey` | `challenge_answers` | **nothing, no grant** | composite FKs keep the type and the correct option consistent with the challenge |
+| `Hint` | `hints` | **nothing, no grant** | revealed text is copied into the play response by the server |
+| `Session` | `sessions` | select own (`owner_id = auth.uid()`) | `version` for optimistic concurrency; one unfinished session per owner per experience |
+| `SessionStop` | `session_stops` | select own, never `locked` rows | PK `(session_id, stop_id)`; composite FKs keep stops within the session's experience; stop FK restrict |
+
+Guests never write: all writes go through server actions with the secret key. IDs are the fixed UUIDs from the content files.
+
+**Tests:** `npm run test:db` (Vitest, `tests/db/`, dev project only) seeds fixtures with the secret key and proves, with the publishable key, that a visitor and a signed-in guest can't read stops, challenges, options, answers or hints, can't read another guest's session, and can't write anything. It also audits grants, functions, `search_path` and default privileges, and creates a throwaway table and function to prove new objects start closed.
 
 ## Not yet implemented
 - Opening hours / backup venue switching (GAME_RULES §10): the types are ready; `unlockNextStop` always uses the main venue until M5.
