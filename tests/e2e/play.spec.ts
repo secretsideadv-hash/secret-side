@@ -23,6 +23,8 @@ const EXPECTED_SCORE = 355; // 85 (1 hint) + 100 + 50 (skip) + 20 (2 hints + rev
 test.afterAll(deleteTestGuests);
 
 test("plays the whole adventure from Discover to the completion screen", async ({ page }) => {
+  // Ten screens with a live WebGL map (software-rendered in headless Chromium).
+  test.setTimeout(90_000);
   const cspViolations = watchCspViolations(page);
   await startAdventure(page);
 

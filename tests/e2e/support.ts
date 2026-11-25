@@ -52,7 +52,8 @@ export async function startAdventure(page: Page): Promise<string> {
   await page.getByRole("link", { name: /Saúde!/ }).first().click();
   await expect(page).toHaveURL(/\/adventures\/saude$/);
   await page.getByRole("button", { name: "Unlock adventure" }).click();
-  await expect(page).toHaveURL(PLAY_URL);
+  // Signs a guest in over the network (Supabase Auth) before redirecting.
+  await expect(page).toHaveURL(PLAY_URL, { timeout: 15_000 });
   const id = sessionIdOf(page.url());
   startedSessions.add(id);
   return id;

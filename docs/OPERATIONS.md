@@ -67,6 +67,8 @@ CI never gets live credentials; migrations and live imports stay manual (see Rel
 | `npm run db:types` | Regenerate `lib/supabase/database.types.ts` from dev |
 | `npm run content:import -- dev\|live [--dry-run] [--revalidate-only]` | Validate and import `content/<city>/*.ts`, refresh the site cache |
 | `npm run verify:live` | Read-only health check of the live database and site |
+| `npm run map:style` | Regenerate `public/map/secret-side-dark.json` from OpenFreeMap's dark style (then commit it) |
+| (automatic) `predev` / `prebuild` | Copy MapLibre's worker to `public/vendor/` so it's served from our origin |
 | `npm run test:db` | RLS, privileges, content repository and session store against dev |
 
 ## Data housekeeping

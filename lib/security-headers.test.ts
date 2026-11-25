@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contentSecurityPolicy, securityHeaders } from "./security-headers";
+import { MAP_TILE_ORIGIN, contentSecurityPolicy, securityHeaders } from "./security-headers";
 
 const directive = (csp: string, name: string) =>
   csp
@@ -14,7 +14,8 @@ describe("security headers", () => {
   it("only allows our own origin for scripts, connections and frames", () => {
     expect(directive(csp, "default-src")).toEqual(["'self'"]);
     expect(directive(csp, "script-src")).toEqual(["'self'", "'unsafe-inline'"]);
-    expect(directive(csp, "connect-src")).toEqual(["'self'"]);
+    expect(directive(csp, "connect-src")).toEqual(["'self'", MAP_TILE_ORIGIN]);
+    expect(directive(csp, "worker-src")).toEqual(["'self'"]); // MapLibre's worker is served by us
     expect(directive(csp, "frame-ancestors")).toEqual(["'none'"]);
     expect(directive(csp, "object-src")).toEqual(["'none'"]);
     expect(directive(csp, "form-action")).toEqual(["'self'"]);
@@ -25,8 +26,14 @@ describe("security headers", () => {
     expect(directive(contentSecurityPolicy({ dev: true }), "script-src")).toContain("'unsafe-eval'");
   });
 
-  it("allows no third-party origins (the map's tile origin is added deliberately in M3)", () => {
-    expect(csp).not.toMatch(/https?:|\*/);
+  it("allows exactly one third-party origin, the map tiles, and only for connections", () => {
+    const origins = [...csp.matchAll(/https?:\/\/[^\s;]+/g)].map((m) => m[0]);
+    expect(origins).toEqual([MAP_TILE_ORIGIN]);
+    expect(MAP_TILE_ORIGIN).toBe("https://tiles.openfreemap.org");
+    expect(csp).not.toContain("*");
+    for (const name of ["script-src", "frame-ancestors", "img-src", "worker-src", "font-src", "style-src"]) {
+      expect(directive(csp, name), name).not.toContain(MAP_TILE_ORIGIN);
+    }
   });
 
   it("sends the standard hardening headers", () => {

@@ -62,7 +62,6 @@ async function UnlockedLoader({ params }: { params: Promise<{ sessionId: string 
         <MapView
           center={{ lat: next.lat, lng: next.lng }}
           markers={markersFromState(state)}
-          pitch={60}
           label={mapLabel(state)}
         />
 

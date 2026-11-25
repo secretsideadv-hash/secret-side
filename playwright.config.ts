@@ -6,6 +6,8 @@ const BASE_URL = `http://localhost:${PORT}`;
 export default defineConfig({
   testDir: "tests/e2e",
   fullyParallel: true,
+  // The live map renders with software WebGL (SwiftShader), which is CPU-heavy: cap parallel browsers.
+  workers: process.env.CI ? 2 : 4,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"]],
@@ -16,6 +18,8 @@ export default defineConfig({
     isMobile: true,
     hasTouch: true,
     trace: "retain-on-failure",
+    // Headless Chromium needs SwiftShader for WebGL, so the live map renders in tests.
+    launchOptions: { args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] },
   },
   // Test the production build: same caching, prerendering and Secure cookie as Vercel.
   webServer: {

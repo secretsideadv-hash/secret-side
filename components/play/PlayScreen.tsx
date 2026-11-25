@@ -283,7 +283,7 @@ function HeadToStop({
       <MapView
         center={{ lat: current.lat, lng: current.lng }}
         markers={markersFromState(state)}
-        pitch={60}
+        player={location.latest ? { lat: location.latest.lat, lng: location.latest.lng, accuracyM: location.latest.accuracyM } : null}
         label={mapLabel(state)}
         externalLink={{ href: googleMapsDirectionsUrl(current.lat, current.lng), label: "Open in Google Maps" }}
       />

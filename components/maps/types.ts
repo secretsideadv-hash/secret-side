@@ -1,7 +1,6 @@
 /**
- * Provider-agnostic map props. Named after MapLibre GL JS camera options so the
- * M3 implementation (3D buildings, pitched camera) is a drop-in swap behind
- * <MapView>. Never pass locked stops: markers come from VisibleState only.
+ * Provider-agnostic map props, named after MapLibre GL JS camera options.
+ * Never pass locked stops: markers come from VisibleState only (markersFromState).
  */
 
 export interface LatLng {
@@ -18,17 +17,24 @@ export interface MapMarker extends LatLng {
   label: string;
 }
 
+/** The player's own position from the browser (GPS check-in), drawn as a blue dot with an accuracy ring. */
+export interface PlayerPosition extends LatLng {
+  accuracyM: number;
+}
+
 export interface MapViewProps {
   /** Camera target, normally the current stop. */
   center: LatLng;
   markers: MapMarker[];
-  /** Map zoom level (M3). The static map fits all markers instead. */
+  /** Where the player is, if they shared their location. Never stored or sent anywhere by the map. */
+  player?: PlayerPosition | null;
+  /** Map zoom level. The static map fits all markers instead. */
   zoom?: number;
-  /** Camera tilt in degrees for the 3D view (M3). */
+  /** Camera tilt in degrees for the 3D view (0 in 2D). */
   pitch?: number;
-  /** Camera rotation in degrees (M3). */
+  /** Camera rotation in degrees. */
   bearing?: number;
-  /** Pan/zoom gestures (M3). The static map is never interactive. */
+  /** Pan/zoom gestures (two fingers, so the page still scrolls). The static map is never interactive. */
   interactive?: boolean;
   /** Text alternative describing what the map shows. */
   label: string;

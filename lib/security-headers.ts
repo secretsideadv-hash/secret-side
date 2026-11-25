@@ -8,11 +8,15 @@
  * frame other origins. The browser never talks to Supabase directly: game
  * calls are Server Actions on our own origin.
  *
- * M3 (the map) extends this list deliberately: connect-src for the OpenFreeMap
- * tiles, styles and fonts. MapLibre's worker is served from our own origin.
+ * The one third-party origin is the map: MapLibre fetches OpenFreeMap vector
+ * tiles, fonts and sprites from MAP_TILE_ORIGIN (connect-src only; no scripts,
+ * no frames). MapLibre's worker and our style file are served from our own origin.
  */
 
 type Directives = Record<string, string[]>;
+
+/** OpenFreeMap: vector tiles, glyphs and sprites for the map (no key, no cookies). */
+export const MAP_TILE_ORIGIN = "https://tiles.openfreemap.org";
 
 export function contentSecurityPolicy({ dev }: { dev: boolean }): string {
   const directives: Directives = {
@@ -22,7 +26,7 @@ export function contentSecurityPolicy({ dev }: { dev: boolean }): string {
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", "blob:"],
     "font-src": ["'self'"], // next/font self-hosts the fonts
-    "connect-src": ["'self'"],
+    "connect-src": ["'self'", MAP_TILE_ORIGIN],
     "worker-src": ["'self'"],
     "manifest-src": ["'self'"],
     "object-src": ["'none'"],
