@@ -22,9 +22,7 @@ export default defineConfig({
     command: `npm run build && npx next start -p ${PORT}`,
     url: BASE_URL,
     timeout: 240_000,
+    // Reads .env.local, so the app under test uses the DEV Supabase project.
     reuseExistingServer: !process.env.CI,
-    env: {
-      SESSION_SECRET: process.env.SESSION_SECRET ?? "e2e-only-secret-never-use-in-production-0000",
-    },
   },
 });

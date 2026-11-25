@@ -211,6 +211,9 @@ export interface VisibleState {
     totalStops: number;
     startedAt: IsoDateTime | null;
     completedAt: IsoDateTime | null;
+    /** Storage version of this state. Sent back with every action; an action built
+     * on an older version is rejected as stale (replays, double taps, other tabs). */
+    version: number;
   };
   experience: {
     id: Id;

@@ -166,6 +166,8 @@ export function toVisibleState(
   session: Session,
   content: ExperienceContent,
   now: Date,
+  /** The stored session's version (server/session-store); 0 for unsaved state. */
+  version = 0,
 ): VisibleState {
   const { experience } = content;
   const completedStops: VisibleCompletedStop[] = [];
@@ -192,6 +194,7 @@ export function toVisibleState(
       totalStops: content.stops.length,
       startedAt: session.startedAt,
       completedAt: session.completedAt,
+      version,
     },
     experience: {
       id: experience.id,

@@ -36,7 +36,7 @@ Screens use only `components/maps/MapView`. Its props (`center`, `markers`, `zoo
 
 - **Catalog** (`server/catalog.ts`): `"use cache"` functions returning `VisibleExperienceSummary` (counts, never stops), tagged `catalog`, `cacheLife("days")`. Discover, Coming soon and the Details page for each published slug are prerendered from it, so **a build needs a database with published content** (`generateStaticParams` must return a slug).
 - **Engine content** (`server/content.ts → getExperienceContent`): cached on the server per experience, tagged `content`. It includes answer keys, which is fine for a server-side cache; it only reaches the browser through `toVisibleState()`.
-- **Per-request parts** read the session cookie or the clock and sit inside `<Suspense>`: Discover's Continue card (`VisibleContinueCard`, built from `VisibleState`) and the Play screen. They call `connection()` before reading the clock.
+- **Per-request parts** read the guest's auth cookies or the clock and sit inside `<Suspense>`: Discover's Continue card (`VisibleContinueCard`, built from `VisibleState`) and the Play screen. They call `connection()` before reading the clock.
 - **URL data** (`params`) is read inside `<Suspense>` so the instant-navigation shell (hero, back button) is shared across slugs; links to details use `prefetch` to resolve it ahead of the tap.
 - **Unlock adventure** is a Server Action (`app/(visitor)/adventures/[slug]/actions.ts`) that validates the slug with Zod, resumes this browser's unfinished session for that adventure or starts a new one, and redirects to `/play/[sessionId]`.
 
@@ -49,13 +49,23 @@ Screens use only `components/maps/MapView`. Its props (`center`, `markers`, `zoo
 
 ## Tests
 
-- `npm test` (Vitest): engine rules, answer matching, the no-leak projection, cookie crypto, content integrity.
-- `npm run test:e2e` (Playwright): builds and starts production on port 3100, plays the whole mock adventure at 390 px, checks every HTML/RSC/action response for answers, unrevealed hints and locked stops, and checks the session can't be opened from another browser. The answers it uses are mock content and are marked `MOCK:` in the spec.
+- `npm test` (Vitest): engine rules, answer matching, the no-leak projection, the content validator, content and session row mapping.
+- `npm run test:db` (Vitest, dev project): RLS and privileges, the content repository, and the session store (one active session per guest, version check, owner scoping, abandon sweep).
+- `npm run test:e2e` (Playwright): builds and starts production on port 3100, plays the whole mock adventure at 390 px, checks every HTML/RSC/action response for answers, unrevealed hints and locked stops, checks the guest's auth cookies are HttpOnly, and (`sessions.spec.ts`) that closing and reopening the browser resumes the session, that a replayed Server Action request is rejected without changing anything, and that another browser (with or without its own guest) can't open or act on the session. It runs against the dev project and deletes the guests it creates. The answers it uses are mock content and are marked `MOCK:` in `tests/e2e/support.ts`.
 
 ## Session storage
 
-- **M1 (MOCK):** the `Session` object (progress only, no content) is stored in one cookie `ss_session`, encrypted and authenticated with AES-256-GCM (`server/crypto.ts`, `node:crypto`, key from `SESSION_SECRET` via HKDF). `httpOnly`, `sameSite=lax`, `secure` in production, 30 days. Any change to the cookie fails authentication and the session is treated as missing. Limits: one active session per browser, no groups, and restoring an older cookie rolls back progress (only affects the player's own score).
-- **M2 (from step 4):** `sessions` and `session_stops` in Supabase, owned by the anonymous auth user (see Database). `server/session-store.ts` changes; engine and projection stay the same.
+Sessions live in Supabase (`sessions` + `session_stops`), owned by the player's Supabase user. (M1's encrypted `ss_session` cookie is gone; the next unlock deletes any leftover cookie.)
+
+- **Guests** (`server/guest.ts`): "Unlock adventure" signs the browser in with Supabase anonymous auth if it isn't already (`ensureGuest`, Server Action only). Nothing else creates users, so browsing never does. Every read uses `currentGuestId()`, which verifies the access token with `auth.getClaims()`; no auth cookie means no guest and no network call.
+- **Auth cookies** (`server/supabase/cookie-options.ts`): `sb-<ref>-auth-token`, HttpOnly, `sameSite=lax`, `secure` in production, 400 days, so the session survives closing the browser. Page scripts can't read them; M4 realtime must not relax this.
+- **Token refresh** (`proxy.ts`): access tokens are short-lived and Server Components can't write cookies, so the proxy refreshes an expired token before the page renders and passes the new cookies to the request and the browser. Requests without an auth cookie skip it.
+- **Ownership**: `server/session-store.ts` uses the secret key, so every query is scoped by the verified owner id (`loadOwnSession(id, owner)`). Someone else's session id loads nothing: the page shows "This adventure isn't on this phone" and actions return `not_found`.
+- **Writes and the version check**: `VisibleState.session.version` goes to the screen, and every action sends it back. `server/play.ts → mutate()` rejects a request built on an older version (`stale`), runs the engine, and saves through `public.save_session(…, expected_version)`, which writes only if the stored version is still the same and then bumps it (so two parallel requests can't both land). Replayed requests, double taps and stale tabs get "Things moved on"; the screen refreshes and adopts the newer state.
+- **One active session per guest per experience**: `public.create_session` inserts unless the partial unique index finds an unfinished one, and then returns that id. Two quick "Unlock" taps end up in the same session.
+- **Time**: `now` is always the server's clock; cooldowns are stored as `cooldown_until` (timestamptz).
+- **Abandoned**: `private.abandon_idle_sessions()` runs hourly (pg_cron job `abandon-idle-sessions`, minute 17) and saves `abandoned` for sessions idle for 48 h, bumping the version. Reads apply the same rule for display between sweeps; the next action resumes the session.
+- **Limits until M4/M6**: one guest per browser, so a session is on one phone; clearing cookies loses it (the resume link comes with Stripe in M6).
 
 ## Database (Supabase, M2)
 

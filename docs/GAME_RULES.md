@@ -54,6 +54,7 @@ Only: experience summary, completed stops, the current stop (its story and quest
 - Paid experiences: Stripe Checkout collects an email. The webhook (not the redirect) creates the entitlement and emails a **resume link** so a lost phone or cleared browser doesn't lose the purchase.
 - **Entitlements last 12 months from purchase.** An abandoned session can be resumed until its entitlement expires.
 - Players can pause at any time; progress is saved after every state change.
+- A guest's progress lives with that browser (its sign-in cookies). An iPhone home-screen web app has its own cookies, separate from Safari's, so a session started in Safari won't appear in the installed app (and vice versa) until accounts or the resume link (M6).
 
 ## 10. Venues and opening hours
 - Each stop can have an opening window and a backup venue. If the main venue is closed at play time, the engine unlocks the backup instead and says so.

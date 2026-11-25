@@ -438,8 +438,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_session: { Args: { session: Json; stops: Json }; Returns: string }
       get_experience_content: { Args: { experience_id: string }; Returns: Json }
       import_experience: { Args: { content: Json }; Returns: Json }
+      save_session: {
+        Args: { expected_version: number; session: Json; stops: Json }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

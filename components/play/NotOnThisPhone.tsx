@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { buttonClass } from "../ui/primitives";
 
-/** Shown when the session cookie is missing or belongs to another session. */
+/** Shown when this browser's guest doesn't own the session (another phone, or cookies cleared). */
 export function NotOnThisPhone() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-[430px] flex-col justify-center gap-4 px-5">

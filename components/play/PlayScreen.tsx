@@ -31,6 +31,17 @@ export function PlayScreen({ initialState, actions }: { initialState: VisibleSta
   const [text, setText] = useState("");
   const [coolingUntil, setCoolingUntil] = useState<string | null>(initialState.current?.cooldownUntil ?? null);
 
+  // A refresh (e.g. after a "stale" error) brings newer server state: adopt it, so the
+  // next action carries the current version. (React's "adjust state on prop change".)
+  const [seenInitial, setSeenInitial] = useState(initialState);
+  if (initialState !== seenInitial) {
+    setSeenInitial(initialState);
+    if (initialState.session.version > state.session.version) {
+      setState(initialState);
+      setCoolingUntil(initialState.current?.cooldownUntil ?? null);
+    }
+  }
+
   // Re-enable "Check answer" when the server-side cooldown ends.
   useEffect(() => {
     if (!coolingUntil) return;
@@ -41,6 +52,7 @@ export function PlayScreen({ initialState, actions }: { initialState: VisibleSta
   const current = state.current;
   if (!current) return null; // the page redirects completed sessions; nothing to play
   const sessionId = state.session.id;
+  const version = state.session.version;
   const stopId = current.stopId;
 
   function perform(call: () => Promise<PlayActionResult>, onOk?: (r: Extract<PlayActionResult, { ok: true }>) => void) {
@@ -59,14 +71,14 @@ export function PlayScreen({ initialState, actions }: { initialState: VisibleSta
 
   function onCheckIn() {
     setFeedback(null);
-    perform(() => actions.checkIn(sessionId, stopId));
+    perform(() => actions.checkIn(sessionId, version, stopId));
   }
 
   function onHint() {
     const next = current?.hints.find((h) => h.text === null && h.available);
     if (!next) return;
     setFeedback(null);
-    perform(() => actions.revealHint(sessionId, stopId, next.level));
+    perform(() => actions.revealHint(sessionId, version, stopId, next.level));
   }
 
   function onSubmit(event: FormEvent) {
@@ -84,7 +96,7 @@ export function PlayScreen({ initialState, actions }: { initialState: VisibleSta
     setFeedback(null);
     // A correct answer redirects to the Unlocked screen from the server.
     perform(
-      () => actions.submitAnswer(sessionId, stopId, answer),
+      () => actions.submitAnswer(sessionId, version, stopId, answer),
       ({ outcome }) => {
         if (outcome?.outcome === "wrong") {
           setFeedback({ tone: "error", message: "Not quite. Try again, or take a hint." });
@@ -110,8 +122,8 @@ export function PlayScreen({ initialState, actions }: { initialState: VisibleSta
           onCheckIn={onCheckIn}
           onHint={onHint}
           onAskConfirm={setConfirm}
-          onRevealAnswer={() => perform(() => actions.revealAnswer(sessionId, stopId))}
-          onSkip={() => perform(() => actions.skip(sessionId, stopId))}
+          onRevealAnswer={() => perform(() => actions.revealAnswer(sessionId, version, stopId))}
+          onSkip={() => perform(() => actions.skip(sessionId, version, stopId))}
         />
       }
     >

@@ -1,58 +1,25 @@
-import { expect, test, type Page, type Response } from "@playwright/test";
+import { expect, test, type Response } from "@playwright/test";
+import {
+  STOP1,
+  STOP2_ANSWER,
+  STOP4_WRONG,
+  STOP5_RIGHT,
+  STOP_TITLES,
+  UNLOCKED_URL,
+  checkAnswer,
+  checkIn,
+  deleteTestGuests,
+  label,
+  startAdventure,
+  takeMeThere,
+  text,
+} from "./support";
 
-/**
- * Plays the whole mock Saúde! adventure through the UI, like a player would.
- *
- * MOCK: the answers, labels and titles below come from the mock content in
- * content/porto/saude.ts (the test can't import it: that module is server-only).
- * Update them when the verified content replaces the mock.
- */
-const STOP_TITLES = [
-  "The river's line",
-  "Up to the cathedral",
-  "The station of goodbyes",
-  "The grand avenue",
-  "The last line",
-];
-const STOP1 = { wrong: "The bishop", right: "The boatmen" };
-const STOP2_ANSWER = "rosario"; // accepted answer is "Rosário": accents are ignored
-const STOP4_WRONG = "six";
-const STOP5_RIGHT = "As a compass to find her way home";
+/** Plays the whole mock Saúde! adventure through the UI, like a player would. */
+
 const EXPECTED_SCORE = 355; // 85 (1 hint) + 100 + 50 (skip) + 20 (2 hints + reveal) + 100
 
-const PLAY_URL = /\/play\/[0-9a-f-]{36}$/;
-const UNLOCKED_URL = /\/play\/[0-9a-f-]{36}\/unlocked$/;
-
-/**
- * Next 16 keeps recently visited pages mounted but hidden (React <Activity>) for
- * instant back navigation, so text lookups must ignore hidden copies.
- */
-const text = (page: Page, value: string | RegExp, exact = false) =>
-  page.getByText(value, { exact }).filter({ visible: true });
-const label = (page: Page, value: string) => page.getByLabel(value).filter({ visible: true });
-
-async function startAdventure(page: Page) {
-  await page.goto("/");
-  await page.getByRole("link", { name: /Saúde!/ }).first().click();
-  await expect(page).toHaveURL(/\/adventures\/saude$/);
-  await page.getByRole("button", { name: "Unlock adventure" }).click();
-  await expect(page).toHaveURL(PLAY_URL);
-}
-
-async function checkIn(page: Page) {
-  await page.getByRole("button", { name: "I'm here" }).click();
-  await expect(text(page, /Checked in at/)).toBeVisible();
-}
-
-async function takeMeThere(page: Page) {
-  await page.getByRole("link", { name: "Take me there" }).click();
-  await expect(page).toHaveURL(PLAY_URL);
-  // The URL changes before the Unlocked screen unmounts; wait for the Play screen itself.
-  await expect(page.getByRole("heading", { name: "Destination unlocked" })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Head to your next stop" })).toBeVisible();
-}
-
-const checkAnswer = (page: Page) => page.getByRole("button", { name: "Check answer" }).click();
+test.afterAll(deleteTestGuests);
 
 test("plays the whole adventure from Discover to the completion screen", async ({ page }) => {
   await startAdventure(page);
@@ -186,18 +153,11 @@ test("never sends answers, unrevealed hints or locked stops to the browser", asy
   ];
   for (const secret of forbidden) expect(sent, `leaked: ${secret}`).not.toContain(secret);
 
-  // The session cookie is HttpOnly: page JavaScript can't read it.
-  const cookie = (await context.cookies()).find((c) => c.name === "ss_session");
-  expect(cookie?.httpOnly).toBe(true);
-  expect(await page.evaluate(() => document.cookie)).not.toContain("ss_session");
-});
-
-test("a session can't be opened from another browser", async ({ page, browser }) => {
-  await startAdventure(page);
-  const url = page.url();
-  const other = await browser.newContext();
-  const otherPage = await other.newPage();
-  await otherPage.goto(url);
-  await expect(otherPage.getByRole("heading", { name: "This adventure isn't on this phone" })).toBeVisible();
-  await other.close();
+  // The guest's Supabase auth cookies are HttpOnly: page JavaScript can't read them.
+  const authCookies = (await context.cookies()).filter((c) => c.name.startsWith("sb-") && c.name.includes("auth-token"));
+  expect(authCookies.length).toBeGreaterThan(0);
+  for (const c of authCookies) expect(c.httpOnly, c.name).toBe(true);
+  expect(await page.evaluate(() => document.cookie)).not.toContain("auth-token");
+  // The M1 cookie session store is gone.
+  expect((await context.cookies()).some((c) => c.name === "ss_session")).toBe(false);
 });
