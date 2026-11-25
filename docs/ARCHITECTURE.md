@@ -23,6 +23,10 @@ Screens use only `components/maps/MapView`. Its props (`center`, `markers`, `zoo
 - `app/not-found.tsx`, `app/error.tsx` and `app/global-error.tsx` share `components/ui/StatusScreen`. Production error pages show only Next's digest, never the server message.
 - Icons: `app/icon.svg` is the source (favicon); `app/apple-icon.png` and `public/icons/*.png` are rendered from it. `app/manifest.ts` is the web app manifest (name "Secret Side").
 
+## Security headers
+
+`lib/security-headers.ts` (applied to every response in `next.config.ts`): a Content-Security-Policy, HSTS, `nosniff`, `X-Frame-Options: DENY`, a strict referrer policy and a Permissions-Policy that allows only our own geolocation. The CSP has no nonces (they would force every page to render per request and remove the prerendered shells), so inline scripts are allowed, but scripts, connections, fonts and frames are limited to our own origin, plugins are off and the site can't be framed. The browser never calls Supabase directly. M3 adds the Mapbox origins and `blob:` workers deliberately. The e2e playthrough fails on any CSP violation.
+
 ## Keeping secrets on the server
 
 1. **`server-only`** on every content and server module: importing one from a client component fails the build.
@@ -105,4 +109,4 @@ Row mapping lives in `server/content-rows.ts` (`toRows` for the import, `fromRow
 - GPS check-in and the Mapbox map (M3): the engine accepts `method: "gps"`, the UI only offers manual check-in, and `MapView` renders the static placeholder.
 - Group play (M4): one guest per browser; `join_code` exists but is unused. Guests can already read their own session rows (for realtime), but the auth cookies are HttpOnly, so realtime will need a token handed out by the server.
 - Payments and resume links (M6): unlocking is free; clearing cookies loses a guest's session.
-- Security headers / CSP and rate limiting of Server Actions: not yet (see the M2 review in ROADMAP notes).
+- Rate limiting of Server Actions and CAPTCHA on guest sign-in: before the pilot (see the M2 review in ROADMAP notes).

@@ -13,6 +13,7 @@ import {
   startAdventure,
   takeMeThere,
   text,
+  watchCspViolations,
 } from "./support";
 
 /** Plays the whole mock Saúde! adventure through the UI, like a player would. */
@@ -22,6 +23,7 @@ const EXPECTED_SCORE = 355; // 85 (1 hint) + 100 + 50 (skip) + 20 (2 hints + rev
 test.afterAll(deleteTestGuests);
 
 test("plays the whole adventure from Discover to the completion screen", async ({ page }) => {
+  const cspViolations = watchCspViolations(page);
   await startAdventure(page);
 
   // Stop 1 (multiple choice): wrong answer, hint, then right answer.
@@ -102,6 +104,9 @@ test("plays the whole adventure from Discover to the completion screen", async (
   await page.getByRole("link", { name: "Back to Discover" }).click();
   await expect(page.getByRole("heading", { name: /Don.t just visit/ })).toBeVisible();
   await expect(text(page, "Continue", true)).toHaveCount(0);
+
+  // The whole playthrough ran under the Content-Security-Policy without anything blocked.
+  expect(cspViolations).toEqual([]);
 });
 
 test("never sends answers, unrevealed hints or locked stops to the browser", async ({ page, context }) => {

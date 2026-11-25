@@ -91,3 +91,14 @@ export async function deleteTestGuests() {
   }
   startedSessions.clear();
 }
+
+/** Collects Content-Security-Policy violations the browser reports while a test runs. */
+export function watchCspViolations(page: Page): string[] {
+  const violations: string[] = [];
+  page.on("console", (msg) => {
+    if (msg.type() === "error" && /Content Security Policy|Refused to (load|execute|connect|frame|apply)/i.test(msg.text())) {
+      violations.push(msg.text());
+    }
+  });
+  return violations;
+}

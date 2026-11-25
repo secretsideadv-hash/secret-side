@@ -36,3 +36,17 @@ test("the web app manifest and icons are served", async ({ page, request }) => {
   await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveCount(1);
   await expect(page.locator('meta[name="apple-mobile-web-app-title"]')).toHaveAttribute("content", "Secret Side");
 });
+
+test("every page is served with the security headers", async ({ request }) => {
+  for (const path of ["/", "/adventures/saude", "/play/00000000-0000-4000-8000-000000000000", "/manifest.webmanifest"]) {
+    const headers = (await request.get(path)).headers();
+    const csp = headers["content-security-policy"] ?? "";
+    expect(csp, path).toContain("default-src 'self'");
+    expect(csp, path).toContain("frame-ancestors 'none'");
+    expect(csp, path).not.toContain("unsafe-eval");
+    expect(headers["x-content-type-options"], path).toBe("nosniff");
+    expect(headers["x-frame-options"], path).toBe("DENY");
+    expect(headers["referrer-policy"], path).toBe("strict-origin-when-cross-origin");
+    expect(headers["permissions-policy"], path).toContain("geolocation=(self)");
+  }
+});

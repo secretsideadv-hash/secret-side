@@ -23,7 +23,7 @@ Done and verified on the live site: schema + RLS + migrations on both projects (
 Before M3 (GPS + Mapbox):
 1. ~~Decide the emergency map rule~~ **Decided** (GAME_RULES §11): position, stops reached, the way back to the start and a tap-to-call 112 button, always reachable; revealing the remaining stops ends the adventure first. Built in M3 with the map.
 2. **GPS check-in on the server.** The browser sends position and accuracy; the server computes the distance and accepts within the stop's radius (plus a capped accuracy allowance), otherwise the screen offers manual check-in. Never trust a "gps" flag from the client.
-3. **Security headers and CSP before Mapbox**, so the map's sources (tiles, workers, telemetry) are allow-listed from the start.
+3. ~~Security headers and CSP before Mapbox~~ **Done**: `lib/security-headers.ts`; M3 adds the Mapbox origins.
 4. **Mapbox account and token (new service):** a public `pk.` token restricted to the production and preview domains; nothing secret in the browser.
 5. **CI on GitHub** (lint, typecheck, unit tests on every push; database and e2e tests against dev with repository secrets).
 6. **Check Vercel Preview once** (push a branch) to confirm it uses the dev project.
