@@ -15,7 +15,8 @@
     "db:push:dev": "node scripts/db.mjs push dev",
     "db:push:live": "node scripts/db.mjs push live",
     "db:types": "node scripts/db.mjs types",
-    "content:import": "tsx --conditions=react-server scripts/import-content.ts"
+    "content:import": "tsx --conditions=react-server scripts/import-content.ts",
+    "verify:live": "tsx --conditions=react-server scripts/verify-live.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

@@ -1,7 +1,7 @@
 # Architecture
 
 How the code is split, and how answers and locked stops stay on the server.
-Rules of the game live in `GAME_RULES.md`; this file is about where code goes.
+Rules of the game live in `GAME_RULES.md`; this file is about where code goes. Environments, keys and the release order are in `OPERATIONS.md`.
 
 ## Layers
 
@@ -102,4 +102,7 @@ Row mapping lives in `server/content-rows.ts` (`toRows` for the import, `fromRow
 
 ## Not yet implemented
 - Opening hours / backup venue switching (GAME_RULES §10): the types are ready; `unlockNextStop` always uses the main venue until M5.
-- GPS check-in (M3): the engine accepts `method: "gps"`, the UI only offers manual.
+- GPS check-in and the Mapbox map (M3): the engine accepts `method: "gps"`, the UI only offers manual check-in, and `MapView` renders the static placeholder.
+- Group play (M4): one guest per browser; `join_code` exists but is unused. Guests can already read their own session rows (for realtime), but the auth cookies are HttpOnly, so realtime will need a token handed out by the server.
+- Payments and resume links (M6): unlocking is free; clearing cookies loses a guest's session.
+- Security headers / CSP and rate limiting of Server Actions: not yet (see the M2 review in ROADMAP notes).
