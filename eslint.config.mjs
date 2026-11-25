@@ -25,8 +25,13 @@ const eslintConfig = defineConfig([
               message: "Components must not import content or server code. Pass VisibleState props.",
             },
             {
-              group: ["@/features/engine/*", "!@/features/engine/types"],
-              message: "Components may import only types from @/features/engine/types.",
+              group: [
+                "@/features/engine/*",
+                "!@/features/engine/types",
+                "!@/features/engine/geo",
+                "!@/features/engine/rules",
+              ],
+              message: "Components may import only engine types, plus the pure geo maths and rule numbers.",
             },
           ],
         },

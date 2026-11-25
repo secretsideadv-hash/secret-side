@@ -21,6 +21,15 @@ export const STOP1 = { wrong: "The bishop", right: "The boatmen" };
 export const STOP2_ANSWER = "rosario"; // accepted answer is "Rosário": accents are ignored
 export const STOP4_WRONG = "six";
 export const STOP5_RIGHT = "As a compass to find her way home";
+/** Stop 1's coordinates in the mock content (Ribeira). */
+export const STOP1_POSITION = { latitude: 41.1407, longitude: -8.6131 };
+const METRES_PER_DEGREE_LAT = (Math.PI / 180) * 6_371_008.8;
+/** A fake GPS fix `metres` due north of a point. */
+export const northOf = (p: { latitude: number; longitude: number }, metres: number, accuracy = 8) => ({
+  latitude: p.latitude + metres / METRES_PER_DEGREE_LAT,
+  longitude: p.longitude,
+  accuracy,
+});
 
 export const PLAY_URL = /\/play\/[0-9a-f-]{36}$/;
 export const UNLOCKED_URL = /\/play\/[0-9a-f-]{36}\/unlocked$/;

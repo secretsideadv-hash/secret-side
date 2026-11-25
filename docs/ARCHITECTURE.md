@@ -12,7 +12,7 @@ Rules of the game live in `GAME_RULES.md`; this file is about where code goes. E
 | `features/content/` | Pure content validator (`validateContent`), used by the import and by tests. | engine |
 | `server/` | Server use-cases: content repository, session store, crypto, `play.ts` (load → engine → save → project). All **`server-only`**. | engine, content, `lib/` |
 | `app/` | Routes. Server Components call `server/`; Server Actions are thin wrappers over `server/play.ts`. | `server/`, `components/`, engine types |
-| `components/` | Presentational components. Props are `Visible*` DTOs. | **only** `@/features/engine/types` (ESLint-enforced) |
+| `components/` | Presentational components. Props are `Visible*` DTOs. | **only** `@/features/engine/types`, plus the pure `geo` maths and `rules` numbers (ESLint-enforced) |
 
 ## Maps
 
@@ -49,6 +49,7 @@ Screens use only `components/maps/MapView`. Its props (`center`, `markers`, `zoo
 - `/play/[sessionId]`: Server Component loads `VisibleState` and renders the client `PlayScreen`, passing the Server Actions in as props (`lib/play-types.ts → PlayActions`), so components never import server code.
 - Actions (`app/(visitor)/play/[sessionId]/actions.ts`) validate input with Zod, run the engine via `server/play.ts`, and return the new `VisibleState`. Engine errors (stale double tap, hint not available) come back as error codes; the screen shows a message and refreshes. Completing a stop (correct answer, reveal, skip) **redirects** server-side to `/unlocked`, or `/complete` after the last stop.
 - `/unlocked` is only shown between completing a stop and arriving at the next; otherwise it redirects back to `/play`.
+- **Location on the Play screen** (`components/play/useLocation.ts`, `LocationStatus.tsx`): nothing asks for location until the player taps "Use my location" (or already allowed it). It watches only while the current stop needs a check-in and the page is visible, keeps the most accurate fix of the last 10 s, shows the live distance with the same rule the server uses, and offers "I'm here" (manual) when location is off, after 20 s without a usable fix, or after a "too far" answer.
 - **GPS check-in** (`gpsCheckInAction`, GAME_RULES §5): the browser proposes `{ lat, lng, accuracyM, ageMs }` (Zod-checked for plausibility); `features/engine/geo.ts → decideGpsCheckIn` decides (fix age, accuracy, distance minus a capped allowance vs the stop's radius). A rejected fix changes nothing and returns `too_far` / `inaccurate` / `stale_fix`. Only the distance and accuracy are stored (`session_stops.check_in_distance_m`, `check_in_accuracy_m`), never coordinates.
 - **End early** (`endEarlyAction`, GAME_RULES §11): saves the session as completed with `end_reason = 'emergency'` (remaining stops skipped, no penalty, score kept) through the usual version check, then redirects to `/complete`. Only a completed session's projection includes every stop, so the remaining stops can't be seen before this is saved. A normal finish saves `end_reason = 'finished'`.
 - Next 16 keeps recently visited pages mounted but hidden (React `<Activity>`) for instant back navigation. E2E text lookups filter to visible elements for that reason.

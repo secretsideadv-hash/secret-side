@@ -2,14 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition, type FormEvent } from "react";
-import type { AnswerInput, VisibleCurrentStop, VisibleState } from "@/features/engine/types";
+import type { AnswerInput, GpsCheckInOutcome, VisibleCurrentStop, VisibleState } from "@/features/engine/types";
 import { googleMapsDirectionsUrl } from "@/lib/maps";
 import type { PlayActionResult, PlayActions, PlayErrorCode } from "@/lib/play-types";
 import { MapView } from "../maps/MapView";
 import { mapLabel, markersFromState } from "../maps/markers";
 import { BulbIcon, CheckCircleIcon, PinIcon } from "../ui/icons";
 import { buttonClass } from "../ui/primitives";
+import { LocationStatus, proximity } from "./LocationStatus";
 import { PlayHeader, PlayShell } from "./PlayChrome";
+import { useLocation } from "./useLocation";
 
 type Feedback = { tone: "error" | "info"; message: string };
 type Confirm = "skip" | "reveal" | null;
@@ -30,6 +32,10 @@ export function PlayScreen({ initialState, actions }: { initialState: VisibleSta
   const [selected, setSelected] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [coolingUntil, setCoolingUntil] = useState<string | null>(initialState.current?.cooldownUntil ?? null);
+  // §5: the server said "too far" once → offer manual check-in.
+  const [tooFarOnce, setTooFarOnce] = useState(false);
+  // Watch location only while the current stop still needs a check-in.
+  const location = useLocation(state.current?.status === "unlocked");
 
   // A refresh (e.g. after a "stale" error) brings newer server state: adopt it, so the
   // next action carries the current version. (React's "adjust state on prop change".)
@@ -74,6 +80,20 @@ export function PlayScreen({ initialState, actions }: { initialState: VisibleSta
     perform(() => actions.checkIn(sessionId, version, stopId));
   }
 
+  function onGpsCheckIn() {
+    const fix = location.fixToSend();
+    if (!fix) return;
+    setFeedback(null);
+    perform(
+      () => actions.gpsCheckIn(sessionId, version, stopId, fix),
+      ({ checkIn }) => {
+        const message = checkInMessage(checkIn);
+        if (message) setFeedback({ tone: "info", message });
+        if (checkIn?.outcome === "too_far") setTooFarOnce(true);
+      },
+    );
+  }
+
   function onHint() {
     const next = current?.hints.find((h) => h.text === null && h.available);
     if (!next) return;
@@ -115,6 +135,13 @@ export function PlayScreen({ initialState, actions }: { initialState: VisibleSta
       bottomBar={
         <BottomBar
           current={current}
+          checkIn={{
+            location,
+            inRange: proximity(current, location)?.inRange ?? false,
+            manualOffered: location.manualOffered || tooFarOnce,
+            onRequestLocation: location.request,
+            onGpsCheckIn,
+          }}
           pending={pending}
           confirm={confirm}
           coolingDown={coolingUntil !== null}
@@ -136,7 +163,7 @@ export function PlayScreen({ initialState, actions }: { initialState: VisibleSta
             Checked in at {current.venueName}
           </p>
         ) : (
-          <HeadToStop state={state} current={current} />
+          <HeadToStop state={state} current={current} location={location} />
         )}
 
         {arrived && current.story && current.challenge && (
@@ -219,7 +246,29 @@ export function PlayScreen({ initialState, actions }: { initialState: VisibleSta
   );
 }
 
-function HeadToStop({ state, current }: { state: VisibleState; current: VisibleCurrentStop }) {
+/** What the server's answer to a GPS check-in means for the player. */
+function checkInMessage(result: GpsCheckInOutcome | undefined): string | null {
+  switch (result?.outcome) {
+    case "too_far":
+      return `Your GPS puts you about ${result.distanceM} m from the stop. Keep going, or tap “I'm here” if you're already there.`;
+    case "inaccurate":
+      return `Your GPS is unsure right now (±${result.accuracyM} m). Try again in the open, or tap “I'm here”.`;
+    case "stale_fix":
+      return "That location was too old. Wait a moment for a fresh one and try again.";
+    default:
+      return null;
+  }
+}
+
+function HeadToStop({
+  state,
+  current,
+  location,
+}: {
+  state: VisibleState;
+  current: VisibleCurrentStop;
+  location: ReturnType<typeof useLocation>;
+}) {
   return (
     <section className="flex flex-col gap-4 rounded-card border border-line bg-surface p-5">
       <p className="text-xs font-semibold tracking-[0.12em] text-amber uppercase">
@@ -238,8 +287,7 @@ function HeadToStop({ state, current }: { state: VisibleState; current: VisibleC
         label={mapLabel(state)}
         externalLink={{ href: googleMapsDirectionsUrl(current.lat, current.lng), label: "Open in Google Maps" }}
       />
-      {/* MOCK: manual check-in only until GPS check-in (M3). */}
-      <p className="text-xs text-muted">When you get there, tap &ldquo;I&apos;m here&rdquo; to read the story and the clue.</p>
+      <LocationStatus stop={current} location={location} />
     </section>
   );
 }
@@ -262,8 +310,74 @@ function RevealedHints({ current }: { current: VisibleCurrentStop }) {
   );
 }
 
+/**
+ * Check-in buttons (GAME_RULES §5). Manual check-in is always called "I'm here".
+ * - location off or unsupported: "I'm here" only
+ * - not asked yet: "Use my location", with "I'm here" beside it
+ * - finding a fix: "Finding you…"; "I'm here" appears after 20 s
+ * - a fix: GPS check-in; "I'm here" appears after 20 s without a usable fix or a "too far" answer
+ */
+function CheckInButtons(props: {
+  location: ReturnType<typeof useLocation>;
+  inRange: boolean;
+  manualOffered: boolean;
+  pending: boolean;
+  onRequestLocation: () => void;
+  onGpsCheckIn: () => void;
+  onManualCheckIn: () => void;
+}) {
+  const { location, pending } = props;
+  const manual = (primary: boolean) => (
+    <button
+      type="button"
+      disabled={pending}
+      onClick={props.onManualCheckIn}
+      className={primary ? `${buttonClass.primary} w-full` : buttonClass.secondary}
+    >
+      {pending && primary ? "Checking in…" : "I'm here"}
+    </button>
+  );
+
+  if (location.permission === "denied" || location.permission === "unsupported") return manual(true);
+
+  let primary;
+  if (!location.watching) {
+    primary = (
+      <button type="button" onClick={props.onRequestLocation} className={`${buttonClass.primary} flex-1`}>
+        Use my location
+      </button>
+    );
+  } else {
+    const ready = location.latest !== null;
+    primary = (
+      <button
+        type="button"
+        disabled={pending || !ready}
+        onClick={props.onGpsCheckIn}
+        className={`${buttonClass.primary} flex-1 disabled:opacity-60`}
+      >
+        {pending ? "Checking in…" : !ready ? "Finding you…" : props.inRange ? "You're here: check in" : "Check in here"}
+      </button>
+    );
+  }
+  const showManual = !location.watching || props.manualOffered;
+  return (
+    <div className="flex gap-3">
+      {showManual && manual(false)}
+      {primary}
+    </div>
+  );
+}
+
 function BottomBar(props: {
   current: VisibleCurrentStop;
+  checkIn: {
+    location: ReturnType<typeof useLocation>;
+    inRange: boolean;
+    manualOffered: boolean;
+    onRequestLocation: () => void;
+    onGpsCheckIn: () => void;
+  };
   pending: boolean;
   confirm: Confirm;
   coolingDown: boolean;
@@ -315,9 +429,7 @@ function BottomBar(props: {
   if (current.status !== "arrived") {
     return (
       <div className="flex flex-col gap-1">
-        <button type="button" disabled={pending} onClick={props.onCheckIn} className={`${buttonClass.primary} w-full`}>
-          {pending ? "Checking in…" : "I'm here"}
-        </button>
+        <CheckInButtons {...props.checkIn} pending={pending} onManualCheckIn={props.onCheckIn} />
         {skipLink}
       </div>
     );
