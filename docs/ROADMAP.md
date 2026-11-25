@@ -26,6 +26,6 @@ Before M3 (GPS + Mapbox):
 3. ~~Security headers and CSP before Mapbox~~ **Done**: `lib/security-headers.ts`; M3 adds the Mapbox origins.
 4. **Mapbox account and token (new service):** a public `pk.` token restricted to the production and preview domains; nothing secret in the browser.
 5. ~~CI on GitHub~~ **Done**: `.github/workflows/ci.yml` (database and e2e jobs run once the dev secrets are added; see OPERATIONS).
-6. **Check Vercel Preview once** (push a branch) to confirm it uses the dev project.
+6. ~~Check Vercel Preview once~~ **Done** (2026-11-25): Preview signs guests into the dev project and sessions land in dev; Deployment Protection is off. The CSP blocks the Vercel Toolbar script that Vercel injects into previews.
 
 Before the pilot (M8): rate limiting on Server Actions and anonymous sign-in (CAPTCHA), cleanup of anonymous guests with no sessions, Supabase backups (paid plan), a policy for content changes while sessions are in progress.
