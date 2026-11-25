@@ -1,0 +1,78 @@
+# Lint, typecheck and unit tests on every push and pull request. Database and
+# e2e tests run against the DEV Supabase project (secret-side-dev) once its keys
+# are added as repository secrets; until then that job is skipped with a notice.
+# Nothing here can reach the live project.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  checks:
+    name: Lint, typecheck, unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+
+  dev-project:
+    name: Database and e2e tests (dev project)
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://rekuyorpqcszmwkiwcsz.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.DEV_SUPABASE_PUBLISHABLE_KEY }}
+      SUPABASE_SECRET_KEY: ${{ secrets.DEV_SUPABASE_SECRET_KEY }}
+      SUPABASE_DEV_DB_URL: ${{ secrets.DEV_SUPABASE_DB_URL }}
+    steps:
+      - name: Check the dev project secrets are set
+        id: secrets
+        run: |
+          if [ -n "$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY" ] && [ -n "$SUPABASE_SECRET_KEY" ] && [ -n "$SUPABASE_DEV_DB_URL" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::DEV_SUPABASE_* repository secrets are not set; skipping database and e2e tests."
+          fi
+      - if: steps.secrets.outputs.ready == 'true'
+        uses: actions/checkout@v5
+      - if: steps.secrets.outputs.ready == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - if: steps.secrets.outputs.ready == 'true'
+        run: npm ci
+      - if: steps.secrets.outputs.ready == 'true'
+        name: Database tests (RLS, privileges, content, sessions)
+        run: npm run test:db
+      - if: steps.secrets.outputs.ready == 'true'
+        run: npx playwright install --with-deps chromium
+      - if: steps.secrets.outputs.ready == 'true'
+        name: End-to-end tests (production build)
+        run: npm run test:e2e
+      - if: failure() && steps.secrets.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7

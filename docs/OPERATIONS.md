@@ -44,6 +44,21 @@ Database first, code second: production code must never run against a database t
 5. Commit and push `main`; Vercel builds and deploys. A build reads the catalog from the database, so it fails loudly if live has no published content.
 6. `npm run verify:live` (read-only): migrations applied, live content equals the files, RLS and grants, no guest-callable functions, `search_path` pinned, abandon job active, pages load, `/api/revalidate` refuses unauthenticated calls.
 
+## CI (GitHub Actions)
+
+`.github/workflows/ci.yml` runs on every push and pull request:
+
+1. **Lint, typecheck, unit tests**: always, no secrets needed.
+2. **Database and e2e tests against the dev project**: only when these repository secrets exist (GitHub → Settings → Secrets and variables → Actions → New repository secret); otherwise the job is skipped with a notice.
+
+| Secret | Value |
+|---|---|
+| `DEV_SUPABASE_PUBLISHABLE_KEY` | dev publishable key (same as `.env.local`) |
+| `DEV_SUPABASE_SECRET_KEY` | dev secret key |
+| `DEV_SUPABASE_DB_URL` | dev Session pooler URI (for the privilege audit and new-table probe) |
+
+CI never gets live credentials; migrations and live imports stay manual (see Release order). On failure, Playwright traces are uploaded as an artifact for 7 days.
+
 ## Commands
 
 | Command | What it does |

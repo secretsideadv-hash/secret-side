@@ -25,7 +25,7 @@ Before M3 (GPS + Mapbox):
 2. **GPS check-in on the server.** The browser sends position and accuracy; the server computes the distance and accepts within the stop's radius (plus a capped accuracy allowance), otherwise the screen offers manual check-in. Never trust a "gps" flag from the client.
 3. ~~Security headers and CSP before Mapbox~~ **Done**: `lib/security-headers.ts`; M3 adds the Mapbox origins.
 4. **Mapbox account and token (new service):** a public `pk.` token restricted to the production and preview domains; nothing secret in the browser.
-5. **CI on GitHub** (lint, typecheck, unit tests on every push; database and e2e tests against dev with repository secrets).
+5. ~~CI on GitHub~~ **Done**: `.github/workflows/ci.yml` (database and e2e jobs run once the dev secrets are added; see OPERATIONS).
 6. **Check Vercel Preview once** (push a branch) to confirm it uses the dev project.
 
 Before the pilot (M8): rate limiting on Server Actions and anonymous sign-in (CAPTCHA), cleanup of anonymous guests with no sessions, Supabase backups (paid plan), a policy for content changes while sessions are in progress.
