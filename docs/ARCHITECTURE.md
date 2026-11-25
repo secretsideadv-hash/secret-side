@@ -8,7 +8,8 @@ Rules of the game live in `GAME_RULES.md`; this file is about where code goes.
 | Folder | What | May import |
 |---|---|---|
 | `features/engine/` | Pure TypeScript game engine: types, state machine, answer checking, scoring, the client projection. No React, no I/O, no clock (time is passed in). | nothing outside itself |
-| `content/<city>/` | Typed content files (M1), shaped like the M2 tables. **`server-only`**: contains answers and hints. | engine types |
+| `content/<city>/` | Typed content files: the source that `npm run content:import` loads into Supabase. **`server-only`**: contains answers and hints. | engine types |
+| `features/content/` | Pure content validator (`validateContent`), used by the import and by tests. | engine |
 | `server/` | Server use-cases: content repository, session store, crypto, `play.ts` (load → engine → save → project). All **`server-only`**. | engine, content, `lib/` |
 | `app/` | Routes. Server Components call `server/`; Server Actions are thin wrappers over `server/play.ts`. | `server/`, `components/`, engine types |
 | `components/` | Presentational components. Props are `Visible*` DTOs. | **only** `@/features/engine/types` (ESLint-enforced) |
@@ -33,7 +34,8 @@ Screens use only `components/maps/MapView`. Its props (`center`, `markers`, `zoo
 
 ## Rendering and caching (Next 16, `cacheComponents`)
 
-- **Catalog** (`server/catalog.ts`): `"use cache"` functions returning `VisibleExperienceSummary` (counts, never stops). Discover, Coming soon and the Details page for each published slug are prerendered from it.
+- **Catalog** (`server/catalog.ts`): `"use cache"` functions returning `VisibleExperienceSummary` (counts, never stops), tagged `catalog`, `cacheLife("days")`. Discover, Coming soon and the Details page for each published slug are prerendered from it, so **a build needs a database with published content** (`generateStaticParams` must return a slug).
+- **Engine content** (`server/content.ts → getExperienceContent`): cached on the server per experience, tagged `content`. It includes answer keys, which is fine for a server-side cache; it only reaches the browser through `toVisibleState()`.
 - **Per-request parts** read the session cookie or the clock and sit inside `<Suspense>`: Discover's Continue card (`VisibleContinueCard`, built from `VisibleState`) and the Play screen. They call `connection()` before reading the clock.
 - **URL data** (`params`) is read inside `<Suspense>` so the instant-navigation shell (hero, back button) is shared across slugs; links to details use `prefetch` to resolve it ahead of the tap.
 - **Unlock adventure** is a Server Action (`app/(visitor)/adventures/[slug]/actions.ts`) that validates the slug with Zod, resumes this browser's unfinished session for that adventure or starts a new one, and redirects to `/play/[sessionId]`.
@@ -76,6 +78,17 @@ Two projects: **secret-side** (live, Vercel Production only) and **secret-side-d
 Guests never write: all writes go through server actions with the secret key. IDs are the fixed UUIDs from the content files.
 
 **Tests:** `npm run test:db` (Vitest, `tests/db/`, dev project only) seeds fixtures with the secret key and proves, with the publishable key, that a visitor and a signed-in guest can't read stops, challenges, options, answers or hints, can't read another guest's session, and can't write anything. It also audits grants, functions, `search_path` and default privileges, and creates a throwaway table and function to prove new objects start closed.
+
+## Content import
+
+`npm run content:import -- dev|live [--dry-run]` (`scripts/import-content.ts`, run with tsx and the `react-server` condition so `server-only` content loads):
+
+1. **Validates** every experience with `features/content/validate.ts`. Any error and nothing is sent; warnings are printed.
+2. **Imports in one transaction** through `public.import_experience(jsonb)`: upserts by the fixed ids, deletes rows that left the files, and leaves unchanged rows untouched, so a second run reports "no changes". Deleting a stop that has play history is refused.
+3. **Reads back** through `public.get_experience_content(uuid)` (what the app uses) and checks it equals the file exactly.
+4. **Refreshes the cache**: `POST /api/revalidate` with `Authorization: Bearer <secret>` expires the `catalog` and `content` tags (`{ expire: 0 }`). Live needs `LIVE_SITE_URL` and `LIVE_REVALIDATE_SECRET` in `.env.live.local` (the same value as `REVALIDATE_SECRET` in Vercel Production). Vercel Preview deployments pick up dev content on their next build.
+
+Row mapping lives in `server/content-rows.ts` (`toRows` for the import, `fromRows` with Zod validation for reads). `server/content-repository.ts` is the Supabase implementation of `ContentRepository`, using the secret key.
 
 ## Not yet implemented
 - Opening hours / backup venue switching (GAME_RULES §10): the types are ready; `unlockNextStop` always uses the main venue until M5.

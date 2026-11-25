@@ -30,7 +30,7 @@ unlocks the next location, which stays hidden until earned.
 ## Architecture rules
 - Three areas in one codebase: visitor app `app/(visitor)`, game engine `features/engine`, admin `app/admin` (admin comes late; see ROADMAP).
 - The game engine is plain TypeScript with no React imports, so it can be unit-tested on its own.
-- Content is data, never hardcoded in components. Until Supabase is connected, content lives in typed files under `content/<city>/` that match the database shape.
+- Content is data, never hardcoded in components. Content is authored in typed files under `content/<city>/` and loaded into Supabase with `npm run content:import -- dev|live` (validated first); the app reads it from the database.
 - **Server is the source of truth.** Answer checking, progression, unlocks, purchases and group membership happen in server code (server actions / route handlers / Postgres functions).
 - **Never send the client:** correct answers, unrevealed hints, future (locked) stops, or the full route of a paid adventure. The client receives only completed stops, the current stop and, after unlocking, the next one.
 - Answers and hints live in a table/module that is server-only (`import 'server-only'`, or a Postgres table with RLS on, no policy **and no grant** for `anon`/`authenticated`).

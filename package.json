@@ -14,7 +14,8 @@
     "test:db": "vitest run --config vitest.db.config.mts",
     "db:push:dev": "node scripts/db.mjs push dev",
     "db:push:live": "node scripts/db.mjs push live",
-    "db:types": "node scripts/db.mjs types"
+    "db:types": "node scripts/db.mjs types",
+    "content:import": "tsx --conditions=react-server scripts/import-content.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -36,6 +37,7 @@
     "eslint-config-next": "16.4.6",
     "pg": "^8.23.1",
     "tailwindcss": "4.3.3",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.1.1"
   },

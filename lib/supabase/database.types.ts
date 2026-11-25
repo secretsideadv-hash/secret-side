@@ -438,7 +438,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_experience_content: { Args: { experience_id: string }; Returns: Json }
+      import_experience: { Args: { content: Json }; Returns: Json }
     }
     Enums: {
       [_ in never]: never

@@ -21,6 +21,7 @@ import {
   type Session,
   type VisibleState,
 } from "@/features/engine";
+import { getExperienceContent } from "./content";
 import { contentRepository } from "./content-repository";
 import { loadCurrentSession, loadSession, saveSession } from "./session-store";
 
@@ -31,7 +32,7 @@ import { loadCurrentSession, loadSession, saveSession } from "./session-store";
  */
 
 async function contentFor(session: Session): Promise<ExperienceContent> {
-  const content = await contentRepository.getContent(session.experienceId);
+  const content = await getExperienceContent(session.experienceId);
   if (!content) throw new Error("Experience content not found");
   return content;
 }
@@ -44,7 +45,7 @@ async function contentFor(session: Session): Promise<ExperienceContent> {
 export async function startOrResumePlay(slug: string): Promise<Id> {
   const summary = await contentRepository.getSummaryBySlug(slug);
   if (!summary) throw new Error("Unknown experience");
-  const content = await contentRepository.getContent(summary.experience.id);
+  const content = await getExperienceContent(summary.experience.id);
   if (!content) throw new Error("Experience content not found");
 
   const existing = await loadCurrentSession();
@@ -72,7 +73,7 @@ export async function getContinueCard(): Promise<VisibleContinueCard | null> {
   await connection(); // per-request: reads the clock
   const stored = await loadCurrentSession();
   if (!stored) return null;
-  const content = await contentRepository.getContent(stored.experienceId);
+  const content = await getExperienceContent(stored.experienceId);
   if (!content) return null;
   const now = new Date();
   return toContinueCard(toVisibleState(applyInactivity(stored, now), content, now));
