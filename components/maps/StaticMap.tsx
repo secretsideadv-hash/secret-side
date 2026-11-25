@@ -1,6 +1,6 @@
 // MOCK: static placeholder map for M1. No tiles, no API key, no network: an
 // abstract night-street backdrop with the real stop positions projected on top.
-// Replaced by the Mapbox GL 3D map behind <MapView> in M3.
+// Becomes the fallback behind the MapLibre 3D map in <MapView> in M3.
 import { ExternalIcon } from "../ui/icons";
 import { fitPoints } from "./projection";
 import type { MapViewProps } from "./types";

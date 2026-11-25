@@ -8,8 +8,8 @@
  * frame other origins. The browser never talks to Supabase directly: game
  * calls are Server Actions on our own origin.
  *
- * M3 (Mapbox) extends this list deliberately: connect-src and img-src for the
- * tile and style APIs, worker-src/child-src `blob:` for the map's workers.
+ * M3 (the map) extends this list deliberately: connect-src for the OpenFreeMap
+ * tiles, styles and fonts. MapLibre's worker is served from our own origin.
  */
 
 type Directives = Record<string, string[]>;

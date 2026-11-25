@@ -29,7 +29,7 @@ Architecture is in `ARCHITECTURE.md`; game rules in `GAME_RULES.md`.
 | `LIVE_SITE_URL` | | `https://secret-side-vert.vercel.app` | – | – | no |
 | `LIVE_REVALIDATE_SECRET` | | same as Production `REVALIDATE_SECRET` | – | – | yes |
 
-Database URLs and the access token never go to Vercel. `.env*` files are gitignored except `.env.example`. `SESSION_SECRET` (M1 cookie sessions) is no longer used anywhere.
+The map needs no keys: MapLibre GL loads OpenFreeMap tiles from `https://tiles.openfreemap.org` (no account; attribution is required and shown on the map automatically). Database URLs and the access token never go to Vercel. `.env*` files are gitignored except `.env.example`. `SESSION_SECRET` (M1 cookie sessions) is no longer used anywhere.
 
 The Supabase CLI on this PC may be logged in to a different account. Never rely on `supabase login`: `scripts/db.mjs` passes the credentials above explicitly.
 

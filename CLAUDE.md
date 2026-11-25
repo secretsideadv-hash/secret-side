@@ -21,7 +21,7 @@ unlocks the next location, which stays hidden until earned.
 - Next.js (App Router) + TypeScript (strict)
 - Tailwind CSS. Visitor app uses our own components and design tokens below; shadcn/ui is allowed in the admin area only.
 - Supabase: Postgres, Auth (anonymous sign-in for guests), Storage, Row Level Security
-- Maps: Mapbox GL JS (3D buildings + pitched camera), wrapped in our own `components/maps` component so the provider can be swapped
+- Maps: MapLibre GL JS with OpenFreeMap vector tiles (no key, no account; our own dark style with 3D buildings and a pitched camera), wrapped in our own `components/maps` component so the provider can be swapped. The static map is the fallback.
 - Payments: Stripe Checkout + webhook (milestone M6, not before)
 - Hosting: Vercel. Code on GitHub.
 - PWA first (installable, never required). Native packaging (Capacitor) is a later decision.

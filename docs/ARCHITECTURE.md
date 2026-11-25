@@ -16,7 +16,7 @@ Rules of the game live in `GAME_RULES.md`; this file is about where code goes. E
 
 ## Maps
 
-Screens use only `components/maps/MapView`. Its props (`center`, `markers`, `zoom`, `pitch`, `bearing`, `interactive`) are provider-neutral and shaped for Mapbox GL JS. M1 renders a static SVG placeholder (`StaticMap`); M3 swaps the implementation behind `MapView` without touching screens. `markersFromState()` builds markers from `VisibleState`, so a locked stop can never be drawn.
+Screens use only `components/maps/MapView`. Its props (`center`, `markers`, `zoom`, `pitch`, `bearing`, `interactive`) are provider-neutral camera options. The provider is **MapLibre GL JS** with **OpenFreeMap** vector tiles (no key, no account, no cookies) and our own dark style with 3D buildings (from M3); the static SVG map (`StaticMap`) is shown first and stays as the fallback when WebGL, the network or the tiles fail. MapLibre is loaded only when a map is on screen. `markersFromState()` builds markers from `VisibleState`, so a locked stop can never be drawn.
 
 ## App chrome
 
@@ -25,7 +25,7 @@ Screens use only `components/maps/MapView`. Its props (`center`, `markers`, `zoo
 
 ## Security headers
 
-`lib/security-headers.ts` (applied to every response in `next.config.ts`): a Content-Security-Policy, HSTS, `nosniff`, `X-Frame-Options: DENY`, a strict referrer policy and a Permissions-Policy that allows only our own geolocation. The CSP has no nonces (they would force every page to render per request and remove the prerendered shells), so inline scripts are allowed, but scripts, connections, fonts and frames are limited to our own origin, plugins are off and the site can't be framed. The browser never calls Supabase directly. M3 adds the Mapbox origins and `blob:` workers deliberately. The e2e playthrough fails on any CSP violation.
+`lib/security-headers.ts` (applied to every response in `next.config.ts`): a Content-Security-Policy, HSTS, `nosniff`, `X-Frame-Options: DENY`, a strict referrer policy and a Permissions-Policy that allows only our own geolocation. The CSP has no nonces (they would force every page to render per request and remove the prerendered shells), so inline scripts are allowed, but scripts, connections, fonts and frames are limited to our own origin, plugins are off and the site can't be framed. The browser never calls Supabase directly. M3 adds `https://tiles.openfreemap.org` to `connect-src` deliberately; MapLibre's worker is served from our own origin, so `worker-src 'self'` stays. The e2e playthrough fails on any CSP violation.
 
 ## Keeping secrets on the server
 
@@ -106,7 +106,7 @@ Row mapping lives in `server/content-rows.ts` (`toRows` for the import, `fromRow
 
 ## Not yet implemented
 - Opening hours / backup venue switching (GAME_RULES §10): the types are ready; `unlockNextStop` always uses the main venue until M5.
-- GPS check-in and the Mapbox map (M3): the engine accepts `method: "gps"`, the UI only offers manual check-in, and `MapView` renders the static placeholder.
+- GPS check-in, the 3D map and the Emergency view (M3, in progress): see GAME_RULES §5 and §11.
 - Group play (M4): one guest per browser; `join_code` exists but is unused. Guests can already read their own session rows (for realtime), but the auth cookies are HttpOnly, so realtime will need a token handed out by the server.
 - Payments and resume links (M6): unlocking is free; clearing cookies loses a guest's session.
 - Rate limiting of Server Actions and CAPTCHA on guest sign-in: before the pilot (see the M2 review in ROADMAP notes).

@@ -1,5 +1,5 @@
 /**
- * Provider-agnostic map props. Named after Mapbox GL JS camera options so the
+ * Provider-agnostic map props. Named after MapLibre GL JS camera options so the
  * M3 implementation (3D buildings, pitched camera) is a drop-in swap behind
  * <MapView>. Never pass locked stops: markers come from VisibleState only.
  */
@@ -22,7 +22,7 @@ export interface MapViewProps {
   /** Camera target, normally the current stop. */
   center: LatLng;
   markers: MapMarker[];
-  /** Mapbox zoom level (M3). The static map fits all markers instead. */
+  /** Map zoom level (M3). The static map fits all markers instead. */
   zoom?: number;
   /** Camera tilt in degrees for the 3D view (M3). */
   pitch?: number;

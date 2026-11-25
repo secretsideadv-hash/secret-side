@@ -25,7 +25,15 @@ Only: experience summary, completed stops, the current stop (its story and quest
 
 ## 5. Check-in (GPS)
 - Default radius 75 m; each stop can override (50–150 m). Porto's narrow streets cause GPS drift.
-- Show live distance to the target. If the browser can't get a fix or it's outside the radius, offer **manual check-in** ("I'm here") after a short explanation. Manual check-ins are allowed and recorded (`check_in_method = gps | manual`). How the stop was completed is recorded separately as `resolution`.
+- **What the browser sends** with a GPS check-in: latitude, longitude, the fix's accuracy (m) and its age (ms, measured on the phone as now − fix time, so a wrong phone clock doesn't matter). The best fix from the last ~10 s. Location is sent only at check-in; players are never tracked.
+- **How the server decides** (in this order):
+  1. A fix older than **60 s** is rejected ("stale").
+  2. Accuracy worse than **100 m** is rejected ("GPS unsure").
+  3. Accepted if `distance − min(accuracy, 35 m) ≤ radius` (so the 75 m default stretches to at most 110 m). Otherwise "about N m away", rounded to 10 m.
+- **Recorded:** `check_in_method = gps | manual`, and for GPS the distance and accuracy at check-in (whole metres, for tuning radii). **Raw coordinates are never stored.** How the stop was completed is recorded separately as `resolution`.
+- **Asking for location:** only when the player taps "Use my location" on the way to a stop, after one line saying why ("to check you in and show you on the map; we never store where you are"). Never on Discover or before an adventure starts. If they say no: manual check-in, plus a one-time "how to turn it on" hint, no nagging.
+- **Manual check-in ("I'm here")** is offered with a one-line reason as soon as: location is denied or unavailable; there is no fix after **20 s**; accuracy is still worse than 100 m after 20 s; or the server answered "too far" once. Manual check-ins are allowed and recorded.
+- Location is watched only while the screen is visible and the current stop isn't checked in yet; it stops on check-in and when the app is in the background.
 - GPS is a convenience, not anti-cheat. Spoofing only spoils the game for the spoofer, so no extra machinery in v1.
 
 ## 6. Answer checking
@@ -69,5 +77,6 @@ Only: experience summary, completed stops, the current stop (its story and quest
   - the stops they have already reached (completed stops and the current one), never locked stops;
   - the way back to the start: the first stop's location, with a walking-directions link.
 - **Call 112.** A large tap-to-call button (`tel:112`, the EU emergency number, works in Portugal), labelled clearly, as the first action in the view.
-- **Remaining stops end the adventure first.** "Show all remaining stops" asks for confirmation, then ends the session on the server (status `completed`, no further scoring, remaining stops recorded as skipped) and only then sends the remaining stops' names and locations. It can't be undone. This keeps §4: locked stops are never sent while an adventure can still be played.
+- **Remaining stops end the adventure first.** "Show all remaining stops" asks for confirmation, then ends the session on the server (status `completed`, `end_reason = emergency`, the current and locked stops recorded as skipped **with no penalty**, the score kept as it was) and only then sends the remaining stops' names and locations. It can't be undone. This keeps §4: locked stops are never sent while an adventure can still be played. (A normal finish records `end_reason = finished`.)
 - Opening the emergency view, and closing it again, changes nothing in the session and costs no points.
+- It works without a network connection: the 112 button, the stops reached and the way back come from what the screen already has; only "show all remaining stops" needs the server.

@@ -25,7 +25,7 @@ describe("security headers", () => {
     expect(directive(contentSecurityPolicy({ dev: true }), "script-src")).toContain("'unsafe-eval'");
   });
 
-  it("allows no third-party origins (Mapbox is added deliberately in M3)", () => {
+  it("allows no third-party origins (the map's tile origin is added deliberately in M3)", () => {
     expect(csp).not.toMatch(/https?:|\*/);
   });
 
