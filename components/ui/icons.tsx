@@ -172,3 +172,33 @@ export function AlertIcon(props: IconProps) {
     </Icon>
   );
 }
+
+export function PhoneIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M5 4h3.5l1.5 4-2.2 1.4a11 11 0 0 0 5.8 5.8L15 13l4 1.5V18a2 2 0 0 1-2 2A15 15 0 0 1 3 6a2 2 0 0 1 2-2Z" />
+    </Icon>
+  );
+}
+
+/** Lifebuoy: the Emergency button. */
+export function LifebuoyIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="4" />
+      <path d="m5.6 5.6 3.6 3.6M14.8 14.8l3.6 3.6M18.4 5.6l-3.6 3.6M9.2 14.8l-3.6 3.6" />
+    </Icon>
+  );
+}
+
+/** Crosshair: "Show me" on the map. */
+export function LocateIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+      <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+    </Icon>
+  );
+}

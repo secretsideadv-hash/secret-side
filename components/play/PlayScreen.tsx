@@ -154,7 +154,7 @@ export function PlayScreen({ initialState, actions }: { initialState: VisibleSta
         />
       }
     >
-      <PlayHeader state={state} />
+      <PlayHeader state={state} endEarly={actions.endEarly} />
 
       <main className="flex flex-col gap-4 px-5 pt-5">
         {arrived ? (

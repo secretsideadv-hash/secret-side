@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { ExternalIcon } from "../ui/icons";
+import { distanceMeters } from "@/features/engine/geo";
+import { formatDistance } from "@/lib/format";
+import { ExternalIcon, LocateIcon } from "../ui/icons";
 import type { LiveMap, MapMode } from "./live-map";
 import { StaticMap } from "./StaticMap";
 import type { MapViewProps } from "./types";
@@ -21,6 +23,9 @@ import type { MapViewProps } from "./types";
  */
 
 type Phase = "static" | "loading" | "live" | "fallback";
+
+/** Further than this from the stop, the player isn't in the play area yet: show the distance, don't zoom. */
+const PLAY_AREA_RADIUS_M = 5_000;
 
 const MODE_KEY = "ss_map_mode";
 const MODE_EVENT = "ss-map-mode";
@@ -76,6 +81,9 @@ export function MapView({
   const canvasHost = useRef<HTMLDivElement>(null);
   const live = useRef<LiveMap | null>(null);
   const [phase, setPhase] = useState<Phase>("static");
+  const [playerInView, setPlayerInView] = useState<boolean | null>(null);
+  const playerDistance = player ? distanceMeters(center, player) : null;
+  const playerFar = playerDistance !== null && playerDistance > PLAY_AREA_RADIUS_M;
   const mode = useSyncExternalStore(subscribeMode, readMode, () => "3d" as MapMode);
 
   // Latest values for the async start (the effect below runs once).
@@ -98,6 +106,7 @@ export function MapView({
         if (cancelled || !canvasHost.current) return;
         live.current = createLiveMap(canvasHost.current, latest.current, {
           onReady: () => !cancelled && setPhase("live"),
+          onPlayerInView: (inView) => !cancelled && setPlayerInView(inView),
           onFail: () => {
             live.current?.destroy();
             live.current = null;
@@ -145,7 +154,8 @@ export function MapView({
       data-map-state={phase}
       className={`relative aspect-[4/3] overflow-hidden rounded-card border border-line bg-raised ${className}`}
     >
-      <StaticMap markers={markers} player={player} label={label} hidden={isLive} />
+      {/* Far away, the player's dot would shrink the stops to nothing: leave it out and show the distance. */}
+      <StaticMap markers={markers} player={playerFar ? null : player} label={label} hidden={isLive} />
 
       <div
         aria-hidden={!isLive || undefined}
@@ -179,6 +189,28 @@ export function MapView({
             </button>
           ))}
         </div>
+      )}
+
+      {playerFar && playerDistance !== null ? (
+        <p
+          role="status"
+          className="absolute top-16 left-2.5 rounded-full bg-ground/90 px-3 py-1.5 text-xs font-medium text-fg backdrop-blur"
+        >
+          You&apos;re {formatDistance(playerDistance)} away
+        </p>
+      ) : (
+        isLive &&
+        player &&
+        playerInView === false && (
+          <button
+            type="button"
+            onClick={() => live.current?.showPlayer()}
+            className="absolute top-16 left-2.5 inline-flex h-touch items-center gap-1.5 rounded-full bg-ground/90 px-4 text-sm font-semibold text-fg backdrop-blur"
+          >
+            <LocateIcon className="size-4 text-azulejo" />
+            Show me
+          </button>
+        )
       )}
 
       {externalLink && (

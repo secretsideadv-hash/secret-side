@@ -23,6 +23,16 @@ Screens use only `components/maps/MapView` (a client component). Its props (`cen
 - **Fallback for good** to the static map (with "Simplified map") if there's no WebGL, anything errors before the first full render (style, tiles), nothing renders within 8 s, or the WebGL context is lost.
 - **Worker:** MapLibre's worker is served from our origin (`public/vendor/maplibre-gl-worker-<version>.mjs`, copied by `scripts/copy-map-worker.mjs` before `dev`/`build`, gitignored), so the CSP keeps `worker-src 'self'`.
 - MapLibre owns its container element (an inner div React never re-renders), because it adds its own classes and styles there.
+- **"Show me":** when the player's position is known but outside the live map, a button fits the player and the camera target (the current stop). More than 5 km away the player isn't in the play area yet, so the map shows "You're N km away" instead and the static map leaves the dot out.
+
+## Emergency view (GAME_RULES §11)
+
+`components/play/EmergencyButton.tsx`: an **SOS** button in `PlayHeader` on every active screen (Play at any stop status, during cooldowns and confirmations, and Unlocked; pages pass `endEarly` to show it), never disabled. It opens a full-screen native `<dialog>` built only from the `VisibleState` already on the page, so it works offline:
+
+1. **Call 112** (`tel:112`), first and focused.
+2. **Where you are:** a one-shot position (automatic if location is already allowed, otherwise one tap), shown as coordinates to read out plus a map with the reached stops; never stored or sent.
+3. **Stops you've reached** (completed + current) and **Back to the start** (stop 1, walking directions).
+4. **Show all remaining stops:** after a confirmation, `endEarlyAction` saves the session as completed with `end_reason = 'emergency'` (version check), then redirects to `/complete`, which now shows "Adventure ended early", every stop on a map and a Directions link for each. Offline it explains that this one step needs a connection.
 
 ## App chrome
 

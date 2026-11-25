@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { checkIn, deleteTestGuests, startAdventure, text, watchCspViolations } from "./support";
+import { STOP1_POSITION, checkIn, deleteTestGuests, northOf, startAdventure, text, watchCspViolations } from "./support";
 
 /**
  * The map behind <MapView>: MapLibre GL + OpenFreeMap tiles with our dark 3D
@@ -89,5 +89,31 @@ test.describe("falls back to the static map", () => {
       });
     await expect(map(page)).toHaveAttribute("data-map-state", "fallback");
     await expect(map(page).getByText("Simplified map")).toBeVisible();
+  });
+});
+
+test.describe("the player's position", () => {
+  test.describe("about 1.5 km from the stop", () => {
+    test.use({ permissions: ["geolocation"], geolocation: northOf(STOP1_POSITION, 1_500, 20) });
+
+    test("\"Show me\" fits both the player and the stop", async ({ page }) => {
+      await startAdventure(page);
+      await expect(map(page)).toHaveAttribute("data-map-state", "live", { timeout: 20_000 });
+      const showMe = map(page).getByRole("button", { name: "Show me" });
+      await expect(showMe).toBeVisible();
+      await showMe.click();
+      await expect(showMe).toBeHidden(); // the player is in view now
+    });
+  });
+
+  test.describe("far outside the play area", () => {
+    test.use({ permissions: ["geolocation"], geolocation: northOf(STOP1_POSITION, 20_000, 20) });
+
+    test("shows the distance instead of zooming out", async ({ page }) => {
+      await startAdventure(page);
+      await expect(map(page)).toHaveAttribute("data-map-state", "live", { timeout: 20_000 });
+      await expect(map(page).getByText("You're 20 km away")).toBeVisible();
+      await expect(map(page).getByRole("button", { name: "Show me" })).toHaveCount(0);
+    });
   });
 });

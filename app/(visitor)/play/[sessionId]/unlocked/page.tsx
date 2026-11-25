@@ -11,6 +11,7 @@ import { buttonClass } from "@/components/ui/primitives";
 import type { VisibleCompletedStop } from "@/features/engine/types";
 import { googleMapsDirectionsUrl } from "@/lib/maps";
 import { getPlayState } from "@/server/play";
+import { endEarlyAction } from "../actions";
 
 export const metadata: Metadata = { title: "Destination unlocked" };
 
@@ -45,7 +46,7 @@ async function UnlockedLoader({ params }: { params: Promise<{ sessionId: string 
 
   return (
     <PlayShell>
-      <PlayHeader state={state} />
+      <PlayHeader state={state} endEarly={endEarlyAction} />
       <main className="flex flex-col gap-6 px-5 pt-5">
         <PreviousResult stop={previous} />
 

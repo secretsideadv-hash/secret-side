@@ -6,7 +6,7 @@ One milestone at a time. A milestone is done only when it runs on a real phone.
 |---|-----------|-----------|--------|
 | M1 | **Playable slice (mock content)**: app shell, design tokens, Home, Adventure details, Play (story, clue, hints, server-checked answers), Unlocked, basic map | You can play stops 1–2 of Saúde! on your phone from a Vercel preview link | ✅ Done (2026-11-24) |
 | M2 | **Supabase**: schema + RLS + migrations, anonymous guest sessions, content moved from files to the database, progress saved and resumable | Close the browser mid-adventure, reopen, carry on | ✅ Done (2026-11-25) |
-| M3 | **Location**: live GPS distance, check-in radius, manual fallback, 3D map (MapLibre + OpenFreeMap tiles) with completed/current stops only, Emergency view (GAME_RULES §11) | Check in at real Porto locations |  |
+| M3 | **Location**: live GPS distance, check-in radius, manual fallback, 3D map (MapLibre + OpenFreeMap tiles) with completed/current stops only, Emergency view (GAME_RULES §11) | Check in at real Porto locations | 🟡 Built (M3-1…M3-4); field test in Porto pending |
 | M4 | **Groups**: join code/QR, shared session across phones, realtime unlocks | Two phones play the same session |  |
 | M5 | **Content pipeline**: real venues and verified stories for the full 5-stop flagship + 1 walking mystery, validator rules for real content (opening hours, backup venues), using the M2 import script | Both adventures walk-tested end to end |  |
 | M6 | **Payments**: Stripe Checkout, webhook entitlements, email resume link | A test purchase unlocks the flagship |  |

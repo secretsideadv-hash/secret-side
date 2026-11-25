@@ -27,6 +27,8 @@ export interface LiveMapOptions {
 export interface LiveMap {
   update(markers: MapMarker[], player: PlayerPosition | null): void;
   setMode(mode: MapMode): void;
+  /** Zoom out to fit the player and the camera target (normally the current stop). */
+  showPlayer(): void;
   destroy(): void;
 }
 
@@ -81,7 +83,12 @@ function playerData(player: PlayerPosition | null): PlayerData {
 export function createLiveMap(
   container: HTMLElement,
   options: LiveMapOptions,
-  events: { onReady: () => void; onFail: (reason: string) => void },
+  events: {
+    onReady: () => void;
+    onFail: (reason: string) => void;
+    /** Whether the player's dot is inside the visible map (null: no position). */
+    onPlayerInView?: (inView: boolean | null) => void;
+  },
 ): LiveMap {
   // Our own copy of the worker (scripts/copy-map-worker.mjs), so the CSP needs no blob: workers.
   setWorkerUrl(`/vendor/maplibre-gl-worker-${getVersion()}.mjs`);
@@ -144,6 +151,10 @@ export function createLiveMap(
     map.fitBounds(bounds, { padding: 48, maxZoom: options.zoom, duration: 0, pitch: mode === "3d" ? options.pitch : 0 });
   }
 
+  function reportPlayerInView() {
+    events.onPlayerInView?.(player ? map.getBounds().contains([player.lng, player.lat]) : null);
+  }
+
   function showPlayer() {
     const source = map.getSource<GeoJSONSource>(PLAYER_SOURCE);
     source?.setData(playerData(player));
@@ -180,7 +191,9 @@ export function createLiveMap(
     placeMarkers(markers);
     fitToStops(markers);
     applyMode(false);
+    map.on("moveend", reportPlayerInView);
     events.onReady();
+    reportPlayerInView();
   });
 
   return {
@@ -190,6 +203,16 @@ export function createLiveMap(
       if (!ready) return;
       placeMarkers(markers);
       showPlayer();
+      reportPlayerInView();
+    },
+    showPlayer() {
+      if (!ready || !player) return;
+      const bounds = new LngLatBounds().extend([player.lng, player.lat]).extend([options.center.lng, options.center.lat]);
+      map.fitBounds(bounds, {
+        padding: { top: 72, bottom: 84, left: 40, right: 40 },
+        maxZoom: options.zoom,
+        duration: reducedMotion() ? 0 : 800,
+      });
     },
     setMode(next) {
       mode = next;

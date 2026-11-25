@@ -1,8 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { VisibleState } from "@/features/engine/types";
+import type { PlayActions } from "@/lib/play-types";
 import { CloseIcon } from "../ui/icons";
 import { buttonClass, ProgressSegments } from "../ui/primitives";
+import { EmergencyButton } from "./EmergencyButton";
 
 /** Phone-width column for active-adventure screens: no nav, no ads, no suggestions. */
 export function PlayShell({ children, bottomBar }: { children: ReactNode; bottomBar?: ReactNode }) {
@@ -22,8 +24,11 @@ export function PlayShell({ children, bottomBar }: { children: ReactNode; bottom
   );
 }
 
-/** Close button, title, 5-segment progress and the "2/5" counter. */
-export function PlayHeader({ state }: { state: VisibleState }) {
+/**
+ * Close button, title, the "2/5" counter, the Emergency button (active screens:
+ * pass `endEarly`) and the 5-segment progress.
+ */
+export function PlayHeader({ state, endEarly }: { state: VisibleState; endEarly?: PlayActions["endEarly"] }) {
   const { session, experience, completedStops } = state;
   const position = Math.min(session.currentPosition, session.totalStops);
   return (
@@ -38,6 +43,7 @@ export function PlayHeader({ state }: { state: VisibleState }) {
         <p className="w-touch text-right font-display text-sm font-semibold text-muted" aria-label={`Stop ${position} of ${session.totalStops}`}>
           {position}/{session.totalStops}
         </p>
+        {endEarly && <EmergencyButton state={state} endEarly={endEarly} />}
       </div>
       <ProgressSegments
         total={session.totalStops}
