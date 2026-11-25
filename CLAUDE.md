@@ -60,5 +60,5 @@ unlocks the next location, which stays hidden until earned.
 ## Safety
 - Never route users to private or restricted places, or isolated spots at night.
 - Pub crawls must work for non-drinkers. Never reward or score alcohol consumption.
-- Users can always take a hint, skip a stop, or see the route map in an emergency.
+- Users can always take a hint, skip a stop, or open the Emergency view (GAME_RULES §11): their position, stops reached, the way back to the start and a tap-to-call 112 button, always reachable and never behind a puzzle. Seeing the remaining stops ends the adventure first.
 - Show walking difficulty (Porto is hilly) and night-time conditions up front.

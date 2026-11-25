@@ -61,3 +61,13 @@ Only: experience summary, completed stops, the current stop (its story and quest
 - Opening windows are local times in `Europe/Lisbon` (never server UTC) and may cross midnight (e.g. 18:00–02:00).
 - **Challenges must be answerable from the story or the street outside the venue.** If a challenge depends on the venue interior, the backup venue must have its own challenge.
 - The experience page states the recommended start time window.
+
+## 11. Emergency view
+- **Always reachable.** Every active-adventure screen has an Emergency button that is never disabled, never hidden behind a puzzle, a check-in, a cooldown, a confirmation of progress or a payment, and works on every stop status (unlocked, arrived, after completing a stop).
+- **What it shows, without ending the adventure:**
+  - the player's current position (from the browser; if location is off, say so and show the rest);
+  - the stops they have already reached (completed stops and the current one), never locked stops;
+  - the way back to the start: the first stop's location, with a walking-directions link.
+- **Call 112.** A large tap-to-call button (`tel:112`, the EU emergency number, works in Portugal), labelled clearly, as the first action in the view.
+- **Remaining stops end the adventure first.** "Show all remaining stops" asks for confirmation, then ends the session on the server (status `completed`, no further scoring, remaining stops recorded as skipped) and only then sends the remaining stops' names and locations. It can't be undone. This keeps §4: locked stops are never sent while an adventure can still be played.
+- Opening the emergency view, and closing it again, changes nothing in the session and costs no points.
