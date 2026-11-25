@@ -17,6 +17,7 @@
     "db:types": "node scripts/db.mjs types",
     "content:import": "tsx --conditions=react-server scripts/import-content.ts",
     "verify:live": "tsx --conditions=react-server scripts/verify-live.ts",
+    "field:report": "tsx --conditions=react-server scripts/field-report.ts",
     "predev": "node scripts/copy-map-worker.mjs",
     "prebuild": "node scripts/copy-map-worker.mjs",
     "map:style": "node scripts/build-map-style.mjs"

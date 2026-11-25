@@ -6,7 +6,7 @@ One milestone at a time. A milestone is done only when it runs on a real phone.
 |---|-----------|-----------|--------|
 | M1 | **Playable slice (mock content)**: app shell, design tokens, Home, Adventure details, Play (story, clue, hints, server-checked answers), Unlocked, basic map | You can play stops 1–2 of Saúde! on your phone from a Vercel preview link | ✅ Done (2026-11-24) |
 | M2 | **Supabase**: schema + RLS + migrations, anonymous guest sessions, content moved from files to the database, progress saved and resumable | Close the browser mid-adventure, reopen, carry on | ✅ Done (2026-11-25) |
-| M3 | **Location**: live GPS distance, check-in radius, manual fallback, 3D map (MapLibre + OpenFreeMap tiles) with completed/current stops only, Emergency view (GAME_RULES §11) | Check in at real Porto locations | 🟡 Built (M3-1…M3-4); field test in Porto pending |
+| M3 | **Location**: live GPS distance, check-in radius, manual fallback, 3D map (MapLibre + OpenFreeMap tiles) with completed/current stops only, Emergency view (GAME_RULES §11) | Check in at real Porto locations | 🟡 Built and deployed (M3-1…M3-4); field test in Porto pending (`docs/FIELD_TEST.md`) |
 | M4 | **Groups**: join code/QR, shared session across phones, realtime unlocks | Two phones play the same session |  |
 | M5 | **Content pipeline**: real venues and verified stories for the full 5-stop flagship + 1 walking mystery, validator rules for real content (opening hours, backup venues), using the M2 import script | Both adventures walk-tested end to end |  |
 | M6 | **Payments**: Stripe Checkout, webhook entitlements, email resume link | A test purchase unlocks the flagship |  |
@@ -15,6 +15,21 @@ One milestone at a time. A milestone is done only when it runs on a real phone.
 
 ## Deliberately later
 Admin Studio with a map route editor (until then, content is edited in seed files and imported), food quests, hidden-gem map, "I have 2 hours" generator, leaderboards, AI personalisation, audio, offline mode, native apps, more cities.
+
+## Notes: M3 review (2026-11-25, before the field test)
+
+Built and verified on the live site (`verify:live` passes; the production emergency check passed on `ca5a7a3`):
+- **GPS check-in**, decided on the server (fix age, accuracy, distance minus a capped allowance). Only the distance and accuracy are stored, never coordinates. Manual "I'm here" is offered as in GAME_RULES §5.
+- **3D map**: MapLibre + OpenFreeMap with our dark style; completed and current stops only; 2D/3D toggle; "Show me"; a distance chip beyond 5 km; the static map as fallback (no WebGL, tiles failing, 8 s timeout, context lost). The CSP allows only the tile origin.
+- **Emergency view** (GAME_RULES §11): SOS on every active screen, Call 112, position, stops reached and the way back to the start. It works offline. Revealing the remaining stops ends the session first (`end_reason = emergency`, score kept).
+
+Still to do for M3: the walk in Porto (`docs/FIELD_TEST.md`), then the radii tuned from `npm run field:report` and the notes, and re-imported to dev and live.
+
+Found in the review, not blocking M3:
+- **CI**: the database and e2e jobs are skipped until the three `DEV_SUPABASE_*` secrets are added in GitHub.
+- **Vercel**: `SESSION_SECRET` is no longer used and can be deleted. The CSP blocks the Vercel Toolbar on Preview, so turn the toolbar off there.
+- **Opening hours** are stored but not shown or enforced during play, and backup venues aren't used for check-in yet. Both come in M5 (GAME_RULES §10).
+- **Content** is still placeholder (venue names, stories) and unlocking is free: M5 and M6.
 
 ## Notes: M2 review (2026-11-25)
 
