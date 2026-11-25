@@ -7,6 +7,8 @@ import type { PlayActions } from "@/lib/play-types";
 import { getPlayState } from "@/server/play";
 import {
   checkInAction,
+  endEarlyAction,
+  gpsCheckInAction,
   revealAnswerAction,
   revealHintAction,
   skipStopAction,
@@ -17,6 +19,8 @@ export const metadata: Metadata = { title: "Playing" };
 
 const actions: PlayActions = {
   checkIn: checkInAction,
+  gpsCheckIn: gpsCheckInAction,
+  endEarly: endEarlyAction,
   revealHint: revealHintAction,
   submitAnswer: submitAnswerAction,
   revealAnswer: revealAnswerAction,

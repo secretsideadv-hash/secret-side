@@ -1,4 +1,12 @@
-import type { AnswerInput, AnswerOutcome, HintLevel, Id, VisibleState } from "@/features/engine/types";
+import type {
+  AnswerInput,
+  AnswerOutcome,
+  GpsCheckInOutcome,
+  GpsFix,
+  HintLevel,
+  Id,
+  VisibleState,
+} from "@/features/engine/types";
 
 /** Errors the Play screen can recover from (refresh, retry, or start again). */
 export type PlayErrorCode =
@@ -8,7 +16,7 @@ export type PlayErrorCode =
   | "invalid"; // malformed input
 
 export type PlayActionResult =
-  | { ok: true; state: VisibleState; outcome?: AnswerOutcome }
+  | { ok: true; state: VisibleState; outcome?: AnswerOutcome; checkIn?: GpsCheckInOutcome }
   | { ok: false; error: PlayErrorCode };
 
 /**
@@ -19,6 +27,10 @@ export type PlayActionResult =
  */
 export interface PlayActions {
   checkIn(sessionId: Id, version: number, stopId: Id): Promise<PlayActionResult>;
+  /** GPS check-in (§5): the result says checked_in, too_far, inaccurate or stale_fix. */
+  gpsCheckIn(sessionId: Id, version: number, stopId: Id, fix: GpsFix): Promise<PlayActionResult>;
+  /** Emergency "show all remaining stops" (§11): ends the session, then redirects to the finale. */
+  endEarly(sessionId: Id, version: number): Promise<PlayActionResult>;
   revealHint(sessionId: Id, version: number, stopId: Id, level: HintLevel): Promise<PlayActionResult>;
   submitAnswer(sessionId: Id, version: number, stopId: Id, answer: AnswerInput): Promise<PlayActionResult>;
   revealAnswer(sessionId: Id, version: number, stopId: Id): Promise<PlayActionResult>;

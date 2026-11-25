@@ -117,6 +117,8 @@ export interface ExperienceContent {
 export type SessionStatus = "not_started" | "in_progress" | "completed" | "abandoned";
 export type StopStatus = "locked" | "unlocked" | "arrived" | "solved" | "skipped";
 export type CheckInMethod = "gps" | "manual";
+/** How a completed session ended: played to the last stop, or ended from the Emergency view (§11). */
+export type EndReason = "finished" | "emergency";
 export type Resolution = "answered" | "revealed" | "skipped";
 
 /** table: session_stops (PK session_id + stop_id) */
@@ -125,6 +127,9 @@ export interface SessionStop {
   status: StopStatus;
   usedBackupVenue: boolean;
   checkInMethod: CheckInMethod | null;
+  /** GPS check-ins only (§5): whole metres, for tuning radii. Raw coordinates are never stored. */
+  checkInDistanceM: number | null;
+  checkInAccuracyM: number | null;
   resolution: Resolution | null;
   revealedHintLevels: HintLevel[]; // sorted, e.g. [1] or [1, 2] or [2]
   wrongAttempts: number;
@@ -145,6 +150,8 @@ export interface Session {
   score: number;
   startedAt: IsoDateTime | null;
   completedAt: IsoDateTime | null;
+  /** Set when the session completes (null until then). */
+  endReason: EndReason | null;
   lastActivityAt: IsoDateTime;
   stops: SessionStop[]; // M2: separate session_stops table
 }
@@ -211,6 +218,7 @@ export interface VisibleState {
     totalStops: number;
     startedAt: IsoDateTime | null;
     completedAt: IsoDateTime | null;
+    endReason: EndReason | null;
     /** Storage version of this state. Sent back with every action; an action built
      * on an older version is rejected as stale (replays, double taps, other tabs). */
     version: number;
@@ -264,6 +272,21 @@ export interface VisibleContinueCard {
 // ---------------------------------------------------------------------------
 
 export type AnswerInput = { type: "multiple_choice"; optionId: Id } | { type: "text"; text: string };
+
+/** A position the browser proposes for a GPS check-in (§5). `ageMs` is measured on the phone. */
+export interface GpsFix {
+  lat: number;
+  lng: number;
+  accuracyM: number;
+  ageMs: number;
+}
+
+/** The server's answer to a GPS check-in. Distances are whole metres (too_far: rounded to 10 m). */
+export type GpsCheckInOutcome =
+  | { outcome: "checked_in"; distanceM: number; accuracyM: number }
+  | { outcome: "too_far"; distanceM: number }
+  | { outcome: "inaccurate"; accuracyM: number }
+  | { outcome: "stale_fix" };
 
 export type AnswerOutcome =
   | { outcome: "correct" }

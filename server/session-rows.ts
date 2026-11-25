@@ -14,6 +14,8 @@ const sessionStopRow = z.object({
   status: z.enum(["locked", "unlocked", "arrived", "solved", "skipped"]),
   used_backup_venue: z.boolean(),
   check_in_method: z.enum(["gps", "manual"]).nullable(),
+  check_in_distance_m: z.number().int().nonnegative().nullable(),
+  check_in_accuracy_m: z.number().int().nonnegative().nullable(),
   resolution: z.enum(["answered", "revealed", "skipped"]).nullable(),
   revealed_hint_levels: z.array(z.union([z.literal(1), z.literal(2)])),
   wrong_attempts: z.number().int().nonnegative(),
@@ -33,6 +35,7 @@ export const storedSessionRowSchema = z.object({
   score: z.number().int().nonnegative(),
   started_at: timestamp.nullable(),
   completed_at: timestamp.nullable(),
+  end_reason: z.enum(["finished", "emergency"]).nullable(),
   last_activity_at: timestamp,
   version: z.number().int().nonnegative(),
   session_stops: z.array(sessionStopRow),
@@ -58,6 +61,7 @@ export function sessionFromRow(raw: unknown): StoredSession {
       score: r.score,
       startedAt: r.started_at,
       completedAt: r.completed_at,
+      endReason: r.end_reason,
       lastActivityAt: r.last_activity_at,
       stops: r.session_stops.map(
         (s): SessionStop => ({
@@ -65,6 +69,8 @@ export function sessionFromRow(raw: unknown): StoredSession {
           status: s.status,
           usedBackupVenue: s.used_backup_venue,
           checkInMethod: s.check_in_method,
+          checkInDistanceM: s.check_in_distance_m,
+          checkInAccuracyM: s.check_in_accuracy_m,
           resolution: s.resolution,
           revealedHintLevels: [...s.revealed_hint_levels].sort() as HintLevel[],
           wrongAttempts: s.wrong_attempts,
@@ -91,6 +97,7 @@ export function sessionToRows(session: Session, ownerId: string) {
       score: session.score,
       started_at: session.startedAt,
       completed_at: session.completedAt,
+      end_reason: session.endReason,
       last_activity_at: session.lastActivityAt,
     },
     stops: session.stops.map((s) => ({
@@ -98,6 +105,8 @@ export function sessionToRows(session: Session, ownerId: string) {
       status: s.status,
       used_backup_venue: s.usedBackupVenue,
       check_in_method: s.checkInMethod,
+      check_in_distance_m: s.checkInDistanceM,
+      check_in_accuracy_m: s.checkInAccuracyM,
       resolution: s.resolution,
       revealed_hint_levels: s.revealedHintLevels,
       wrong_attempts: s.wrongAttempts,
@@ -111,4 +120,4 @@ export function sessionToRows(session: Session, ownerId: string) {
 
 /** Columns to select for sessionFromRow (sessions + its stop rows). */
 export const SESSION_SELECT =
-  "id, experience_id, owner_id, join_code, status, current_position, score, started_at, completed_at, last_activity_at, version, session_stops(stop_id, status, used_backup_venue, check_in_method, resolution, revealed_hint_levels, wrong_attempts, consecutive_wrong, cooldown_until, arrived_at, completed_at)";
+  "id, experience_id, owner_id, join_code, status, current_position, score, started_at, completed_at, end_reason, last_activity_at, version, session_stops(stop_id, status, used_backup_venue, check_in_method, check_in_distance_m, check_in_accuracy_m, resolution, revealed_hint_levels, wrong_attempts, consecutive_wrong, cooldown_until, arrived_at, completed_at)";

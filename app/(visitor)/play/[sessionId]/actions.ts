@@ -6,6 +6,8 @@ import { EngineError, type EngineErrorCode, type VisibleState } from "@/features
 import type { PlayActionResult, PlayErrorCode } from "@/lib/play-types";
 import {
   playCheckIn,
+  playEndEarly,
+  playGpsCheckIn,
   playRevealAnswer,
   playRevealHint,
   playSkip,
@@ -26,6 +28,13 @@ import {
 const idSchema = z.uuid();
 const versionSchema = z.number().int().nonnegative().max(1_000_000);
 const hintLevelSchema = z.union([z.literal(1), z.literal(2)]);
+/** A proposed GPS fix (GAME_RULES §5). Plausibility only; the engine decides. */
+const gpsFixSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  accuracyM: z.number().positive().max(100_000),
+  ageMs: z.number().int().min(-3_600_000).max(86_400_000),
+});
 const answerSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("multiple_choice"), optionId: z.uuid() }),
   z.object({ type: z.literal("text"), text: z.string().trim().min(1).max(100) }),
@@ -73,6 +82,29 @@ export async function checkInAction(sessionId: string, version: number, stopId: 
   if (!ids) return { ok: false, error: "invalid" };
   const r = await run(() => playCheckIn(ids.sessionId, ids.version, ids.stopId));
   return r.ok ? { ok: true, state: r.value.state } : r;
+}
+
+export async function gpsCheckInAction(
+  sessionId: string,
+  version: number,
+  stopId: string,
+  fix: unknown,
+): Promise<PlayActionResult> {
+  const ids = parseIds(sessionId, version, stopId);
+  const parsed = gpsFixSchema.safeParse(fix);
+  if (!ids || !parsed.success) return { ok: false, error: "invalid" };
+  const r = await run(() => playGpsCheckIn(ids.sessionId, ids.version, ids.stopId, parsed.data));
+  return r.ok ? { ok: true, state: r.value.state, checkIn: r.value.result } : r;
+}
+
+/** Emergency view: end the adventure on the server first (§11), then show the finale with every stop. */
+export async function endEarlyAction(sessionId: string, version: number): Promise<PlayActionResult> {
+  const s = idSchema.safeParse(sessionId);
+  const v = versionSchema.safeParse(version);
+  if (!s.success || !v.success) return { ok: false, error: "invalid" };
+  const r = await run(() => playEndEarly(s.data, v.data));
+  if (!r.ok) return r;
+  redirect(`/play/${r.value.state.session.id}/complete`);
 }
 
 export async function revealHintAction(

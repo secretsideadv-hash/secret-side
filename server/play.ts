@@ -6,6 +6,8 @@ import { connection } from "next/server";
 import {
   applyInactivity,
   checkIn,
+  checkInWithGps,
+  endEarly,
   revealAnswer,
   revealHint,
   skipStop,
@@ -16,6 +18,8 @@ import {
   type AnswerInput,
   type AnswerOutcome,
   type ExperienceContent,
+  type GpsCheckInOutcome,
+  type GpsFix,
   type HintLevel,
   type Id,
   type Session,
@@ -134,6 +138,14 @@ const unit = (session: Session) => ({ session, result: null });
 
 export const playCheckIn = (sessionId: Id, version: number, stopId: Id) =>
   mutate(sessionId, version, (s, c, now) => unit(checkIn(s, c, { stopId, method: "manual", now })));
+
+/** §5: the server decides from the proposed fix; a rejected fix changes nothing. */
+export const playGpsCheckIn = (sessionId: Id, version: number, stopId: Id, fix: GpsFix) =>
+  mutate<GpsCheckInOutcome>(sessionId, version, (s, c, now) => checkInWithGps(s, c, { stopId, fix, now }));
+
+/** §11: ends the session (no penalty, score kept) so the remaining stops may be shown. */
+export const playEndEarly = (sessionId: Id, version: number) =>
+  mutate(sessionId, version, (s, c, now) => unit(endEarly(s, c, { now })));
 
 export const playRevealHint = (sessionId: Id, version: number, stopId: Id, level: HintLevel) =>
   mutate(sessionId, version, (s, c, now) => unit(revealHint(s, c, { stopId, level, now })));

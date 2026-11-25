@@ -7,7 +7,7 @@ import { randomUUID } from "node:crypto";
 import type { Client as PgClient } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { saude } from "@/content/porto/saude";
-import { checkIn, startSession } from "@/features/engine/session";
+import { checkIn, checkInWithGps, endEarly, startSession } from "@/features/engine/session";
 import { createSession, loadOwnSession, loadUnfinishedSession, saveSession } from "@/server/session-store";
 import { adminClient, anonClient, devPostgres, expectDenied, guestClient } from "./clients";
 
@@ -89,7 +89,7 @@ describe("session store (dev)", () => {
 
   it("lets a guest start the same adventure again once the last one is completed", async () => {
     const now = new Date().toISOString();
-    await admin.from("sessions").update({ status: "completed", completed_at: now }).eq("id", sessionId);
+    await admin.from("sessions").update({ status: "completed", completed_at: now, end_reason: "finished" }).eq("id", sessionId);
     const again = await createSession(newSession(owner), owner);
     expect(again).not.toBe(sessionId);
   });
@@ -104,5 +104,47 @@ describe("session store (dev)", () => {
       expectDenied(await c.rpc("create_session", { session: {}, stops: [] }), "create_session");
       expectDenied(await c.rpc("save_session", { session: {}, stops: [], expected_version: 0 }), "save_session");
     }
+  });
+});
+
+describe("GPS check-in details and end reason (dev)", () => {
+  it("round-trip through the store, and the emergency end is saved with the version check", async () => {
+    const id = await createSession(newSession(stranger), stranger);
+    const stored = (await loadOwnSession(id, stranger))!;
+    const stop1 = saude.stops.find((s) => s.position === 1)!;
+    const fix = { lat: stop1.lat + 20 / 111_195, lng: stop1.lng, accuracyM: 9.2, ageMs: 1_500 };
+    const gps = checkInWithGps(stored.session, saude, { stopId: stop1.id, fix, now: new Date() });
+    expect(gps.result.outcome).toBe("checked_in");
+    expect(await saveSession(gps.session, stranger, stored.version)).toBe(stored.version + 1);
+
+    const arrived = (await loadOwnSession(id, stranger))!;
+    expect(arrived.session.stops.find((s) => s.stopId === stop1.id)).toMatchObject({
+      checkInMethod: "gps",
+      checkInDistanceM: 20,
+      checkInAccuracyM: 10,
+    });
+
+    const ended = endEarly(arrived.session, saude, { now: new Date() });
+    expect(await saveSession(ended, stranger, arrived.version - 1)).toBeNull(); // stale version
+    expect(await saveSession(ended, stranger, arrived.version)).toBe(arrived.version + 1);
+    const after = (await loadOwnSession(id, stranger))!;
+    expect(after.session).toMatchObject({ status: "completed", endReason: "emergency" });
+    expect(after.session.stops.every((s) => s.status === "solved" || s.status === "skipped")).toBe(true);
+  });
+
+  it("the database refuses inconsistent rows even from the server", async () => {
+    const id = await createSession(newSession(stranger), stranger);
+    const stop1 = saude.stops.find((s) => s.position === 1)!;
+    const gpsWithoutDistance = await admin
+      .from("session_stops")
+      .update({ check_in_method: "gps", status: "arrived" })
+      .eq("session_id", id)
+      .eq("stop_id", stop1.id);
+    expect(gpsWithoutDistance.error?.code).toBe("23514"); // check_violation
+    const completedWithoutReason = await admin
+      .from("sessions")
+      .update({ status: "completed", completed_at: new Date().toISOString() })
+      .eq("id", id);
+    expect(completedWithoutReason.error?.code).toBe("23514");
   });
 });

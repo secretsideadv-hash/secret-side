@@ -8,6 +8,7 @@
  */
 import { isAcceptedTextAnswer } from "./answers";
 import { EngineError } from "./errors";
+import { decideGpsCheckIn } from "./geo";
 import { RULES } from "./rules";
 import { stopScore } from "./scoring";
 import type {
@@ -17,6 +18,8 @@ import type {
   Challenge,
   CheckInMethod,
   ExperienceContent,
+  GpsCheckInOutcome,
+  GpsFix,
   Hint,
   HintLevel,
   Id,
@@ -105,6 +108,8 @@ function freshStop(stopId: Id, status: SessionStop["status"]): SessionStop {
     status,
     usedBackupVenue: false,
     checkInMethod: null,
+    checkInDistanceM: null,
+    checkInAccuracyM: null,
     resolution: null,
     revealedHintLevels: [],
     wrongAttempts: 0,
@@ -195,6 +200,7 @@ export function startSession(args: {
     score: 0,
     startedAt: iso,
     completedAt: null,
+    endReason: null,
     lastActivityAt: iso,
     stops: sorted.map((s, i) => freshStop(s.id, i === 0 ? "unlocked" : "locked")),
   };
@@ -215,6 +221,76 @@ export function checkIn(
     { status: "arrived", checkInMethod: args.method, arrivedAt: args.now.toISOString() },
     args.now,
   );
+}
+
+/**
+ * §5: GPS check-in. The server decides from the proposed fix; a rejected fix
+ * (too far, inaccurate, stale) leaves the session unchanged. Idempotent once arrived.
+ */
+export function checkInWithGps(
+  session: Session,
+  content: ExperienceContent,
+  args: { stopId: Id; fix: GpsFix; now: Date },
+): { session: Session; result: GpsCheckInOutcome } {
+  const { stop, progress } = current(session, content, args.stopId);
+  if (progress.status === "arrived") {
+    return {
+      session,
+      result: {
+        outcome: "checked_in",
+        distanceM: progress.checkInDistanceM ?? 0,
+        accuracyM: progress.checkInAccuracyM ?? 0,
+      },
+    };
+  }
+  if (progress.status !== "unlocked") throw new EngineError("stop_not_current");
+
+  const result = decideGpsCheckIn(stop, args.fix);
+  if (result.outcome !== "checked_in") return { session, result };
+  return {
+    session: patch(
+      session,
+      progress.stopId,
+      {
+        status: "arrived",
+        checkInMethod: "gps",
+        checkInDistanceM: result.distanceM,
+        checkInAccuracyM: result.accuracyM,
+        arrivedAt: args.now.toISOString(),
+      },
+      args.now,
+    ),
+    result,
+  };
+}
+
+/**
+ * §11: "Show all remaining stops" ends the adventure first. The current and
+ * locked stops are recorded as skipped with NO penalty, the score is kept, and
+ * the session completes with endReason "emergency". Only after this is saved may
+ * the remaining stops be shown. Idempotent once ended this way.
+ */
+export function endEarly(session: Session, content: ExperienceContent, args: { now: Date }): Session {
+  if (session.experienceId !== content.experience.id) {
+    throw new EngineError("content_mismatch", "Session belongs to another experience");
+  }
+  if (session.status === "completed") {
+    if (session.endReason === "emergency") return session;
+    throw new EngineError("session_completed");
+  }
+  const iso = args.now.toISOString();
+  return {
+    ...session,
+    status: "completed",
+    endReason: "emergency",
+    completedAt: iso,
+    lastActivityAt: iso,
+    stops: session.stops.map((s) =>
+      s.status === "solved" || s.status === "skipped"
+        ? s
+        : { ...s, status: "skipped", resolution: "skipped", cooldownUntil: null, completedAt: iso },
+    ),
+  };
 }
 
 /** §7. Idempotent for an already revealed level. */
@@ -324,7 +400,7 @@ export function unlockNextStop(session: Session, content: ExperienceContent, now
   const next = content.stops.find((s) => s.position === session.currentPosition + 1);
   const iso = now.toISOString();
   if (!next) {
-    return { ...session, status: "completed", completedAt: iso, lastActivityAt: iso };
+    return { ...session, status: "completed", endReason: "finished", completedAt: iso, lastActivityAt: iso };
   }
   // GAME_RULES §10 (backup venue when closed) is applied here from M5; M1 always uses the main venue.
   return {

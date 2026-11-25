@@ -240,6 +240,8 @@ export type Database = {
       session_stops: {
         Row: {
           arrived_at: string | null
+          check_in_accuracy_m: number | null
+          check_in_distance_m: number | null
           check_in_method: string | null
           completed_at: string | null
           consecutive_wrong: number
@@ -257,6 +259,8 @@ export type Database = {
         }
         Insert: {
           arrived_at?: string | null
+          check_in_accuracy_m?: number | null
+          check_in_distance_m?: number | null
           check_in_method?: string | null
           completed_at?: string | null
           consecutive_wrong?: number
@@ -274,6 +278,8 @@ export type Database = {
         }
         Update: {
           arrived_at?: string | null
+          check_in_accuracy_m?: number | null
+          check_in_distance_m?: number | null
           check_in_method?: string | null
           completed_at?: string | null
           consecutive_wrong?: number
@@ -311,6 +317,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           current_position: number
+          end_reason: string | null
           experience_id: string
           id: string
           join_code: string | null
@@ -326,6 +333,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           current_position: number
+          end_reason?: string | null
           experience_id: string
           id: string
           join_code?: string | null
@@ -341,6 +349,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           current_position?: number
+          end_reason?: string | null
           experience_id?: string
           id?: string
           join_code?: string | null

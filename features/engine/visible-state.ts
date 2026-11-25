@@ -194,6 +194,7 @@ export function toVisibleState(
       totalStops: content.stops.length,
       startedAt: session.startedAt,
       completedAt: session.completedAt,
+      endReason: session.endReason,
       version,
     },
     experience: {
