@@ -117,3 +117,97 @@ test.describe("the player's position", () => {
     });
   });
 });
+
+test.describe("full screen", () => {
+  const fullscreen = (page: Page) => page.getByRole("dialog", { name: "Full-screen map" });
+
+  test("opens the same live map with its controls and SOS, and closes back to the card", async ({ page }) => {
+    const csp = watchCspViolations(page);
+    await startAdventure(page);
+    await expect(map(page)).toHaveAttribute("data-map-state", "live", { timeout: 20_000 });
+
+    await map(page).getByRole("button", { name: "Expand map" }).click();
+    const full = fullscreen(page);
+    await expect(full).toBeVisible();
+    await expect(full.getByRole("button", { name: "Close full-screen map" })).toBeFocused();
+
+    // The same map instance moved over: canvas, current stop only, attribution, toggle, Google Maps link.
+    await expect(full.locator("canvas")).toBeVisible();
+    await expect(map(page).locator("canvas")).toHaveCount(0);
+    const markers = full.locator("[data-map-marker]");
+    await expect(markers).toHaveCount(1);
+    await expect(markers.first()).toHaveAttribute("data-map-marker", "current");
+    await expect(full.getByText("OpenStreetMap")).toBeVisible();
+    await expect(full.getByRole("link", { name: "Open in Google Maps" })).toHaveAttribute("href", /google\.com\/maps/);
+    await full.getByRole("button", { name: "2D" }).click();
+    await expect(full.getByRole("button", { name: "2D" })).toHaveAttribute("aria-pressed", "true");
+
+    // Fills the screen.
+    const box = await full.boundingBox();
+    const viewport = page.viewportSize()!;
+    expect(box?.width).toBe(viewport.width);
+    expect(box?.height).toBe(viewport.height);
+
+    // SOS stays one tap away; closing the Emergency view returns to the full-screen map.
+    await full.getByRole("button", { name: "Emergency" }).click();
+    const emergency = page.getByRole("dialog", { name: "Emergency" }).filter({ visible: true });
+    await expect(emergency.getByRole("link", { name: "Call 112" })).toBeVisible();
+    await emergency.getByRole("button", { name: "Close emergency view" }).click();
+    await expect(full).toBeVisible();
+
+    // Escape closes too; the map is back in the card, still live, and focus returns to "Expand map".
+    await page.keyboard.press("Escape");
+    await expect(full).toBeHidden();
+    await expect(map(page).locator("canvas")).toBeVisible();
+    await expect(map(page)).toHaveAttribute("data-map-state", "live");
+    await expect(map(page).getByRole("button", { name: "2D" })).toHaveAttribute("aria-pressed", "true");
+    await expect(map(page).getByRole("button", { name: "Expand map" })).toBeFocused();
+
+    // And the close button.
+    await map(page).getByRole("button", { name: "Expand map" }).click();
+    await full.getByRole("button", { name: "Close full-screen map" }).click();
+    await expect(full).toBeHidden();
+    expect(csp).toEqual([]);
+  });
+
+  test("from the Emergency view, closing the map leaves the Emergency view open", async ({ page }) => {
+    await startAdventure(page);
+    await page.getByRole("button", { name: "Emergency" }).filter({ visible: true }).click();
+    const emergency = page.getByRole("dialog", { name: "Emergency" });
+    await emergency.getByRole("button", { name: "Expand map" }).click();
+    const full = fullscreen(page).filter({ visible: true });
+    await expect(full).toBeVisible();
+    await full.getByRole("button", { name: "Close full-screen map" }).click();
+    await expect(full).toHaveCount(0);
+    await expect(emergency.getByRole("link", { name: "Call 112" })).toBeVisible();
+  });
+
+  test("works with the static fallback", async ({ page }) => {
+    await page.route(TILES, (route) => route.abort());
+    await startAdventure(page);
+    await expect(map(page)).toHaveAttribute("data-map-state", "fallback", { timeout: 15_000 });
+    await map(page).getByRole("button", { name: "Expand map" }).click();
+    const full = fullscreen(page);
+    await expect(full.getByText("Simplified map")).toBeVisible();
+    await expect(full.getByRole("img", { name: /Stop 1/ })).toBeVisible();
+    await expect(full.getByRole("button", { name: "Emergency" })).toBeVisible();
+    await full.getByRole("button", { name: "Close full-screen map" }).click();
+    await expect(full).toBeHidden();
+    await checkIn(page); // the adventure carries on
+  });
+
+  test.describe("with the player's position", () => {
+    // South of the stop: behind the pitched camera, so off screen even in full screen.
+    test.use({ permissions: ["geolocation"], geolocation: northOf(STOP1_POSITION, -1_500, 20) });
+
+    test("shows the player and \"Show me\" in full screen", async ({ page }) => {
+      await startAdventure(page);
+      await expect(map(page)).toHaveAttribute("data-map-state", "live", { timeout: 20_000 });
+      await map(page).getByRole("button", { name: "Expand map" }).click();
+      const showMe = fullscreen(page).getByRole("button", { name: "Show me" });
+      await expect(showMe).toBeVisible();
+      await showMe.click();
+      await expect(showMe).toBeHidden();
+    });
+  });
+});

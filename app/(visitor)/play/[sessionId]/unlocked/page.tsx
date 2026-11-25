@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { MapView } from "@/components/maps/MapView";
 import { mapLabel, markersFromState } from "@/components/maps/markers";
+import { EmergencyButton } from "@/components/play/EmergencyButton";
 import { NotOnThisPhone } from "@/components/play/NotOnThisPhone";
 import { PlayHeader, PlayShell } from "@/components/play/PlayChrome";
 import { CheckCircleIcon, ExternalIcon, PinIcon, UnlockIcon } from "@/components/ui/icons";
@@ -64,6 +65,7 @@ async function UnlockedLoader({ params }: { params: Promise<{ sessionId: string 
           center={{ lat: next.lat, lng: next.lng }}
           markers={markersFromState(state)}
           label={mapLabel(state)}
+          fullscreenAction={<EmergencyButton state={state} endEarly={endEarlyAction} />}
         />
 
         <section className="flex flex-col gap-2 rounded-card border border-line bg-surface p-5">

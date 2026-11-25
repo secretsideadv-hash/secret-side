@@ -6,6 +6,7 @@ import type { AnswerInput, GpsCheckInOutcome, VisibleCurrentStop, VisibleState }
 import { googleMapsDirectionsUrl } from "@/lib/maps";
 import type { PlayActionResult, PlayActions, PlayErrorCode } from "@/lib/play-types";
 import { MapView } from "../maps/MapView";
+import { EmergencyButton } from "./EmergencyButton";
 import { mapLabel, markersFromState } from "../maps/markers";
 import { BulbIcon, CheckCircleIcon, PinIcon } from "../ui/icons";
 import { buttonClass } from "../ui/primitives";
@@ -163,7 +164,7 @@ export function PlayScreen({ initialState, actions }: { initialState: VisibleSta
             Checked in at {current.venueName}
           </p>
         ) : (
-          <HeadToStop state={state} current={current} location={location} />
+          <HeadToStop state={state} current={current} location={location} endEarly={actions.endEarly} />
         )}
 
         {arrived && current.story && current.challenge && (
@@ -264,10 +265,12 @@ function HeadToStop({
   state,
   current,
   location,
+  endEarly,
 }: {
   state: VisibleState;
   current: VisibleCurrentStop;
   location: ReturnType<typeof useLocation>;
+  endEarly: PlayActions["endEarly"];
 }) {
   return (
     <section className="flex flex-col gap-4 rounded-card border border-line bg-surface p-5">
@@ -286,6 +289,7 @@ function HeadToStop({
         player={location.latest ? { lat: location.latest.lat, lng: location.latest.lng, accuracyM: location.latest.accuracyM } : null}
         label={mapLabel(state)}
         externalLink={{ href: googleMapsDirectionsUrl(current.lat, current.lng), label: "Open in Google Maps" }}
+        fullscreenAction={<EmergencyButton state={state} endEarly={endEarly} />}
       />
       <LocationStatus stop={current} location={location} />
     </section>

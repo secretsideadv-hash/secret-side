@@ -24,6 +24,7 @@ Screens use only `components/maps/MapView` (a client component). Its props (`cen
 - **Worker:** MapLibre's worker is served from our origin (`public/vendor/maplibre-gl-worker-<version>.mjs`, copied by `scripts/copy-map-worker.mjs` before `dev`/`build`, gitignored), so the CSP keeps `worker-src 'self'`.
 - MapLibre owns its container element (an inner div React never re-renders), because it adds its own classes and styles there.
 - **"Show me":** when the player's position is known but outside the live map, a button fits the player and the camera target (the current stop). More than 5 km away the player isn't in the play area yet, so the map shows "You're N km away" instead and the static map leaves the dot out.
+- **Full screen:** "Expand map" (top-right) opens the same map in a modal `<dialog>`: focus stays inside, Escape closes, the page behind is inert, and the safe areas are respected. The live map isn't reloaded: its container is a DOM node React never renders, moved between the card and the dialog (then resized; one-finger panning in full screen). The static fallback is simply drawn again. `MapView`'s `fullscreenAction` puts the SOS button in the full-screen top bar on active play screens, so the Emergency view stays one tap away. Nested dialogs ignore each other's `close` events (React passes them up).
 
 ## Emergency view (GAME_RULES §11)
 

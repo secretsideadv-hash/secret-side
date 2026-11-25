@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 /**
  * Provider-agnostic map props, named after MapLibre GL JS camera options.
  * Never pass locked stops: markers come from VisibleState only (markersFromState).
@@ -40,5 +42,10 @@ export interface MapViewProps {
   label: string;
   /** Optional overlay link, e.g. walking directions in Google Maps. */
   externalLink?: { href: string; label: string };
+  /**
+   * Shown in the full-screen map's top bar. Active play screens pass the SOS button,
+   * so the Emergency view stays one tap away (GAME_RULES §11).
+   */
+  fullscreenAction?: ReactNode;
   className?: string;
 }

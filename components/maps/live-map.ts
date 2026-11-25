@@ -29,6 +29,10 @@ export interface LiveMap {
   setMode(mode: MapMode): void;
   /** Zoom out to fit the player and the camera target (normally the current stop). */
   showPlayer(): void;
+  /** After the container moved or changed size (the full-screen map). */
+  resize(): void;
+  /** Two-finger panning in a scrolling page (card); one finger in full screen. */
+  setCooperativeGestures(on: boolean): void;
   destroy(): void;
 }
 
@@ -192,6 +196,7 @@ export function createLiveMap(
     fitToStops(markers);
     applyMode(false);
     map.on("moveend", reportPlayerInView);
+    map.on("resize", reportPlayerInView);
     events.onReady();
     reportPlayerInView();
   });
@@ -213,6 +218,16 @@ export function createLiveMap(
         maxZoom: options.zoom,
         duration: reducedMotion() ? 0 : 800,
       });
+    },
+    resize() {
+      if (finished) return;
+      map.resize();
+      if (ready) reportPlayerInView();
+    },
+    setCooperativeGestures(on) {
+      if (!options.interactive || finished) return;
+      if (on) map.cooperativeGestures.enable();
+      else map.cooperativeGestures.disable();
     },
     setMode(next) {
       mode = next;

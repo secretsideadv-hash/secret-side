@@ -192,6 +192,15 @@ export function LifebuoyIcon(props: IconProps) {
   );
 }
 
+/** Four corners pointing out: "Expand map". */
+export function ExpandIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+    </Icon>
+  );
+}
+
 /** Crosshair: "Show me" on the map. */
 export function LocateIcon(props: IconProps) {
   return (

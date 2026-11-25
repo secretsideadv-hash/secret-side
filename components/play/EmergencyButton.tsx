@@ -42,7 +42,8 @@ export function EmergencyButton({ state, endEarly }: { state: VisibleState; endE
       <dialog
         ref={dialog}
         aria-labelledby="emergency-title"
-        onClose={() => setOpen(false)}
+        // React passes a nested dialog's close event up (the full-screen map inside this view): ignore it.
+        onClose={(e) => e.target === e.currentTarget && setOpen(false)}
         className="fixed inset-0 m-0 size-full max-h-none max-w-none overflow-y-auto border-0 bg-ground p-0 text-fg backdrop:bg-ground"
       >
         {open && <EmergencyView state={state} endEarly={endEarly} onClose={() => setOpen(false)} />}
